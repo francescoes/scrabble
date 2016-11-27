@@ -1,0 +1,23 @@
+{
+  "name": "scrabble",
+  "version": "0.0.1",
+  "description": "simple scrabble game",
+  "main": "index.js",
+  "devDependencies": {
+    "babel-core": "^6.18.2",
+    "babel-loader": "^6.2.8",
+    "babel-preset-es2015": "^6.18.0",
+    "html-loader": "^0.4.4",
+    "webpack": "github:webpack/webpack#v2.1.0-beta.27"
+  },
+  "scripts": {
+    "build": "./node_modules/webpack/bin/webpack.js --progress --colors --watch"
+  },
+  "author": "Francesco Esposito <fraesps@gmail.com>",
+  "license": "MIT",
+  "dependencies": {
+    "angular": "^1.5.9",
+    "angular-route": "^1.5.9",
+    "firebase": "^3.6.1"
+  }
+}
