@@ -6,7 +6,9 @@ function UserService($q) {
         const defer = $q.defer();
 
         firebase.database().ref('users/' + name).once('value')
-            .then(user => defer.resolve(user.val()))
+            .then(user => {
+                defer.resolve(user.val());
+            })
             .catch(error => defer.reject(error));
 
         return defer.promise;
@@ -19,8 +21,8 @@ function UserService($q) {
             score: 0
         };
 
-        firebase.database().ref('users/' + name).set()
-            .then(user => defer.resolve(user.val()))
+        firebase.database().ref('users/' + name).set(user)
+            .then(() => defer.resolve(user))
             .catch(error => defer.reject(error));
 
         return defer.promise;

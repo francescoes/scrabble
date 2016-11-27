@@ -2,21 +2,23 @@ import firebase from 'firebase';
 
 function UserController(UserService) {
 
+    const $ctrl = this;
+
     function play() {
-        UserService.getUser(this.name)
+        UserService.getUser($ctrl.name)
             .then(user => {
                 if (!user) {
-                    UserService.setUser(this.name)
-                        .then(user => this.isValidUser = true)
+                    UserService.setUser($ctrl.name)
+                        .then(() => $ctrl.isValidUser = true)
                         .catch((error) => console.error(error));
                 } else {
-                    this.isValidUser = true;
+                    $ctrl.isValidUser = true;
                 }
             })
             .catch(error => console.error(error));
     }
 
-    Object.assign(this, {
+    Object.assign($ctrl, {
         play,
         name: ''
     });

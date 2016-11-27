@@ -1,3 +1,4 @@
+import angular from 'angular';
 import boardTemplate from './board.html';
 
 const boardComponent = {
@@ -9,38 +10,41 @@ const boardComponent = {
 };
 
 
-function BoardController($interval, BoardService) {
+function BoardController($element, $interval, BoardService) {
 
     const $ctrl = this;
-    $ctrl.secondsLeft = 40;
 
     $ctrl.$onChanges = (changes) => {
-        if (!changes.enabled.currentValue) {
-            return;
-        }
+        if (!changes.enabled.currentValue) return;
 
         BoardService.getWord()
             .then(word => {
                 $ctrl.word = word.scrabble;
+                console.log(word);
+                showBoard();
                 startCountdown();
             })
             .catch(error => console.error(error));
     };
 
+    function showBoard() {
+        console.log($element);
+        angular.element($element[0].firstChild).removeClass('no-display');
+    }
+
     function startCountdown() {
         const stopInterval = $interval(() => {
             $ctrl.secondsLeft -= 1;
-            if ($ctrl.secondsLeft === 0) {
-                $interval.cancel(stopInterval);
-            }
+            if ($ctrl.secondsLeft === 0) $interval.cancel(stopInterval);
         }, 1000);
     }
 
-    Object.assign(this, {
-        word: ''
+    Object.assign($ctrl, {
+        word: '',
+        secondsLeft: 40
     });
 }
 
-BoardController.$inject = ['$interval', 'BoardService'];
+BoardController.$inject = ['$element', '$interval', 'BoardService'];
 
 export default boardComponent;

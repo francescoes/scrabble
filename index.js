@@ -1,7 +1,7 @@
 import firebase from 'firebase';
 import angular from 'angular';
-import users from './src/users';
-import board from './src/board';
+import users from './src/js/users';
+import board from './src/js/board';
 
 // Initialize Firebase
 firebase.initializeApp({
