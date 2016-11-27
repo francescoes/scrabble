@@ -21,5 +21,5 @@ const app = {
 angular.module(app.name, [
     users.name,
     board.name
-    ]);
+]);
 angular.bootstrap(document, [app.name]);

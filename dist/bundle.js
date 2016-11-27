@@ -33282,8 +33282,6 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function UserController(UserService) {
 
-    this.isValidUser = false;
-
     function play() {
         var _this = this;
 
@@ -33369,25 +33367,39 @@ var boardComponent = {
     }
 };
 
-function BoardController(BoardService) {
-    var _this = this;
+function BoardController($interval, BoardService) {
 
-    this.$onChanges = function (changes) {
-        if (changes.enabled.currentValue) {
-            BoardService.getWord().then(function (word) {
-                return _this.word = word.scrabble;
-            }).catch(function (error) {
-                return console.error(error);
-            });
+    var $ctrl = this;
+    $ctrl.secondsLeft = 40;
+
+    $ctrl.$onChanges = function (changes) {
+        if (!changes.enabled.currentValue) {
+            return;
         }
+
+        BoardService.getWord().then(function (word) {
+            $ctrl.word = word.scrabble;
+            startCountdown();
+        }).catch(function (error) {
+            return console.error(error);
+        });
     };
+
+    function startCountdown() {
+        var stopInterval = $interval(function () {
+            $ctrl.secondsLeft -= 1;
+            if ($ctrl.secondsLeft === 0) {
+                $interval.cancel(stopInterval);
+            }
+        }, 1000);
+    }
 
     Object.assign(this, {
         word: ''
     });
 }
 
-BoardController.$inject = ['BoardService'];
+BoardController.$inject = ['$interval', 'BoardService'];
 
 exports.default = boardComponent;
 
@@ -33435,7 +33447,7 @@ exports.default = BoardService;
 /* 19 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"board\">\n\t<div class=\"scrabble\">{{$ctrl.word}}</div>\n</div>\n";
+module.exports = "<div class=\"board\">\n\t<div class=\"scrabble\">{{$ctrl.secondsLeft}}</div>\n\t<div class=\"scrabble\">{{$ctrl.word}}</div>\n</div>\n";
 
 /***/ }
 /******/ ]);

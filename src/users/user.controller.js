@@ -2,8 +2,6 @@ import firebase from 'firebase';
 
 function UserController(UserService) {
 
-    this.isValidUser = false;
-
     function play() {
         UserService.getUser(this.name)
             .then(user => {

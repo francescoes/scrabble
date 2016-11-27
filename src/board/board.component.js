@@ -9,14 +9,31 @@ const boardComponent = {
 };
 
 
-function BoardController (BoardService) {
+function BoardController($interval, BoardService) {
 
-    this.$onChanges = (changes) => {
-        if(changes.enabled.currentValue) {
-            BoardService.getWord()
-                .then(word => this.word = word.scrabble)
-                .catch(error => console.error(error))
+    const $ctrl = this;
+    $ctrl.secondsLeft = 40;
+
+    $ctrl.$onChanges = (changes) => {
+        if (!changes.enabled.currentValue) {
+            return;
         }
+
+        BoardService.getWord()
+            .then(word => {
+                $ctrl.word = word.scrabble;
+                startCountdown();
+            })
+            .catch(error => console.error(error));
+    };
+
+    function startCountdown() {
+        const stopInterval = $interval(() => {
+            $ctrl.secondsLeft -= 1;
+            if ($ctrl.secondsLeft === 0) {
+                $interval.cancel(stopInterval);
+            }
+        }, 1000);
     }
 
     Object.assign(this, {
@@ -24,6 +41,6 @@ function BoardController (BoardService) {
     });
 }
 
-BoardController.$inject = ['BoardService'];
+BoardController.$inject = ['$interval', 'BoardService'];
 
 export default boardComponent;
