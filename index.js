@@ -23,27 +23,3 @@ angular.module(app.name, [
     board.name
     ]);
 angular.bootstrap(document, [app.name]);
-
-// const form = document.querySelector('form[name="play-scrabble"]');
-
-// form.addEventListener('submit', function onSubmit(event) {
-//     event.preventDefault();
-
-//     const name = event.target[0].value;
-
-//     if (!name) {
-//         console.log('Name cannot be empty!');
-//         return;
-//     }
-
-//     firebase.database().ref('users/' + name).once('value', function(item) {
-//         if (item.val()) {
-//             console.log('Name already exist!');
-//             return;
-//         }
-
-//         firebase.database().ref('users/' + name).set({
-//             name: name
-//         });
-//     });
-// });

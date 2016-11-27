@@ -32573,18 +32573,21 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function UserService() {
 
-    console.log('init scrabble service');
+    function getUser(name) {
+        return _firebase2.default.database().ref('users/' + name);
+    }
 
-    // firebase.database().ref('users/' + name).once('value', function(item) {
-    //     if (item.val()) {
-    //         console.log('Name already exist!');
-    //         return;
-    //     }
+    function setUser(name) {
+        return _firebase2.default.database().ref('users/' + name).set({
+            name: name,
+            score: 0
+        });
+    }
 
-    //     firebase.database().ref('users/' + name).set({
-    //         name: name
-    //     });
-    // });
+    Object.assign(this, {
+        setUser: setUser,
+        getUser: getUser
+    });
 }
 
 /***/ },
@@ -33241,33 +33244,9 @@ var app = {
 _angular2.default.module(app.name, [_users2.default.name, _board2.default.name]);
 _angular2.default.bootstrap(document, [app.name]);
 
-// const form = document.querySelector('form[name="play-scrabble"]');
-
-// form.addEventListener('submit', function onSubmit(event) {
-//     event.preventDefault();
-
-//     const name = event.target[0].value;
-
-//     if (!name) {
-//         console.log('Name cannot be empty!');
-//         return;
-//     }
-
-//     firebase.database().ref('users/' + name).once('value', function(item) {
-//         if (item.val()) {
-//             console.log('Name already exist!');
-//             return;
-//         }
-
-//         firebase.database().ref('users/' + name).set({
-//             name: name
-//         });
-//     });
-// });
-
 /***/ },
 /* 15 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 'use strict';
@@ -33275,23 +33254,44 @@ _angular2.default.bootstrap(document, [app.name]);
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function UserController(UserService) {
 
-    var $ctrl = this;
+var _firebase = __webpack_require__(1);
 
-    $ctrl.isValidUser = false;
+var _firebase2 = _interopRequireDefault(_firebase);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function UserController($scope, UserService) {
+
+    this.isValidUser = false;
 
     function play() {
-        $ctrl.isValidUser = true;
-        return $ctrl.name;
+        var _this = this;
+
+        UserService.getUser(this.name).once('value', function (user) {
+            if (!user.val()) {
+                UserService.setUser(_this.name).then(function (user) {
+                    return $scope.$apply(function () {
+                        return _this.isValidUser = true;
+                    });
+                }).catch(function () {
+                    return console.error('Error in saving the user');
+                });
+            } else {
+                $scope.$apply(function () {
+                    return _this.isValidUser = true;
+                });
+            }
+        });
     }
 
     Object.assign(this, {
-        play: play
+        play: play,
+        name: ''
     });
 }
 
-UserController.$inject = ['UserService'];
+UserController.$inject = ['$scope', 'UserService'];
 exports.default = UserController;
 
 /***/ },

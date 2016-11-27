@@ -2,16 +2,19 @@ import firebase from 'firebase';
 
 export default function UserService() {
 
-    console.log('init scrabble service');
+    function getUser(name) {
+        return firebase.database().ref('users/' + name);
+    }
 
-    // firebase.database().ref('users/' + name).once('value', function(item) {
-    //     if (item.val()) {
-    //         console.log('Name already exist!');
-    //         return;
-    //     }
+    function setUser(name) {
+        return firebase.database().ref('users/' + name).set({
+            name: name,
+            score: 0
+        });
+    }
 
-    //     firebase.database().ref('users/' + name).set({
-    //         name: name
-    //     });
-    // });
+    Object.assign(this, {
+        setUser,
+        getUser
+    });
 }

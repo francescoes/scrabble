@@ -1,18 +1,26 @@
-function UserController(UserService) {
+import firebase from 'firebase';
 
-    const $ctrl = this;
+function UserController($scope, UserService) {
 
-    $ctrl.isValidUser = false;
+    this.isValidUser = false;
 
     function play() {
-        $ctrl.isValidUser = true;
-        return $ctrl.name;
+        UserService.getUser(this.name).once('value', (user) => {
+            if (!user.val()) {
+                UserService.setUser(this.name)
+                    .then((user) => $scope.$apply(() => this.isValidUser = true))
+                    .catch(() => console.error('Error in saving the user'));
+            } else {
+                $scope.$apply(() => this.isValidUser = true); 
+            }
+        });
     }
 
     Object.assign(this, {
-        play
+        play,
+        name: ''
     });
 }
 
-UserController.$inject = ['UserService'];
+UserController.$inject = ['$scope', 'UserService'];
 export default UserController;
