@@ -11,11 +11,17 @@ const boardComponent = {
 
 function BoardController (BoardService) {
 
-    this.$onChanges = function (changes) {
+    this.$onChanges = (changes) => {
         if(changes.enabled.currentValue) {
-            BoardService.getWord();
+            BoardService.getWord()
+                .then(word => this.word = word.scrabble)
+                .catch(error => console.error(error))
         }
     }
+
+    Object.assign(this, {
+        word: ''
+    });
 }
 
 BoardController.$inject = ['BoardService'];

@@ -1,19 +1,21 @@
 import firebase from 'firebase';
 
-function UserController($scope, UserService) {
+function UserController(UserService) {
 
     this.isValidUser = false;
 
     function play() {
-        UserService.getUser(this.name).once('value', (user) => {
-            if (!user.val()) {
-                UserService.setUser(this.name)
-                    .then((user) => $scope.$apply(() => this.isValidUser = true))
-                    .catch(() => console.error('Error in saving the user'));
-            } else {
-                $scope.$apply(() => this.isValidUser = true); 
-            }
-        });
+        UserService.getUser(this.name)
+            .then(user => {
+                if (!user) {
+                    UserService.setUser(this.name)
+                        .then(user => this.isValidUser = true)
+                        .catch((error) => console.error(error));
+                } else {
+                    this.isValidUser = true;
+                }
+            })
+            .catch(error => console.error(error));
     }
 
     Object.assign(this, {
@@ -22,5 +24,5 @@ function UserController($scope, UserService) {
     });
 }
 
-UserController.$inject = ['$scope', 'UserService'];
+UserController.$inject = ['UserService'];
 export default UserController;

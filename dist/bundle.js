@@ -32563,7 +32563,6 @@ $provide.value("$locale", {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.default = UserService;
 
 var _firebase = __webpack_require__(1);
 
@@ -32571,17 +32570,34 @@ var _firebase2 = _interopRequireDefault(_firebase);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function UserService() {
+function UserService($q) {
 
     function getUser(name) {
-        return _firebase2.default.database().ref('users/' + name);
+        var defer = $q.defer();
+
+        _firebase2.default.database().ref('users/' + name).once('value').then(function (user) {
+            return defer.resolve(user.val());
+        }).catch(function (error) {
+            return defer.reject(error);
+        });
+
+        return defer.promise;
     }
 
     function setUser(name) {
-        return _firebase2.default.database().ref('users/' + name).set({
+        var defer = $q.defer();
+        var user = {
             name: name,
             score: 0
+        };
+
+        _firebase2.default.database().ref('users/' + name).set().then(function (user) {
+            return defer.resolve(user.val());
+        }).catch(function (error) {
+            return defer.reject(error);
         });
+
+        return defer.promise;
     }
 
     Object.assign(this, {
@@ -32589,6 +32605,9 @@ function UserService() {
         getUser: getUser
     });
 }
+
+UserService.$inject = ['$q'];
+exports.default = UserService;
 
 /***/ },
 /* 8 */
@@ -33261,27 +33280,25 @@ var _firebase2 = _interopRequireDefault(_firebase);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function UserController($scope, UserService) {
+function UserController(UserService) {
 
     this.isValidUser = false;
 
     function play() {
         var _this = this;
 
-        UserService.getUser(this.name).once('value', function (user) {
-            if (!user.val()) {
+        UserService.getUser(this.name).then(function (user) {
+            if (!user) {
                 UserService.setUser(_this.name).then(function (user) {
-                    return $scope.$apply(function () {
-                        return _this.isValidUser = true;
-                    });
-                }).catch(function () {
-                    return console.error('Error in saving the user');
+                    return _this.isValidUser = true;
+                }).catch(function (error) {
+                    return console.error(error);
                 });
             } else {
-                $scope.$apply(function () {
-                    return _this.isValidUser = true;
-                });
+                _this.isValidUser = true;
             }
+        }).catch(function (error) {
+            return console.error(error);
         });
     }
 
@@ -33291,7 +33308,7 @@ function UserController($scope, UserService) {
     });
 }
 
-UserController.$inject = ['$scope', 'UserService'];
+UserController.$inject = ['UserService'];
 exports.default = UserController;
 
 /***/ },
@@ -33353,12 +33370,21 @@ var boardComponent = {
 };
 
 function BoardController(BoardService) {
+    var _this = this;
 
     this.$onChanges = function (changes) {
         if (changes.enabled.currentValue) {
-            BoardService.getWord();
+            BoardService.getWord().then(function (word) {
+                return _this.word = word.scrabble;
+            }).catch(function (error) {
+                return console.error(error);
+            });
         }
     };
+
+    Object.assign(this, {
+        word: ''
+    });
 }
 
 BoardController.$inject = ['BoardService'];
@@ -33382,12 +33408,18 @@ var _firebase2 = _interopRequireDefault(_firebase);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function BoardService() {
+function BoardService($q) {
 
     function getWord() {
-        _firebase2.default.database().ref('words/0').once('value', function (item) {
-            console.log(item.val());
+        var defer = $q.defer();
+
+        _firebase2.default.database().ref('words/0').once('value').then(function (word) {
+            return defer.resolve(word.val());
+        }).catch(function (error) {
+            return defer.reject(error);
         });
+
+        return defer.promise;
     }
 
     Object.assign(this, {
@@ -33395,13 +33427,15 @@ function BoardService() {
     });
 }
 
+BoardService.$inject = ['$q'];
+
 exports.default = BoardService;
 
 /***/ },
 /* 19 */
 /***/ function(module, exports) {
 
-module.exports = "<div></div>\n";
+module.exports = "<div class=\"board\">\n\t<div class=\"scrabble\">{{$ctrl.word}}</div>\n</div>\n";
 
 /***/ }
 /******/ ]);
