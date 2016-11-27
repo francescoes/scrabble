@@ -3,8 +3,21 @@
 	<head>
 		<title>Scrabble</title>
 	</head>
-	<body>
-		<user-component></user-component>
+	<body data-ng-controller="UserController as $ctrl">
+
+		<form name="play-scrabble"
+			data-ng-submit="$ctrl.play()"
+			novalidate>
+			<label>
+				Name:
+				<input id="name"
+				type="text"
+				data-ng-model="$ctrl.name" />
+			</label>
+			<input type="submit" value="play">
+		</form>
+
+		<board-component enabled="$ctrl.isValidUser"></board-component>
 
 		<script src="dist/bundle.js"></script>
 	</body>

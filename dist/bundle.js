@@ -149,7 +149,7 @@ var _user = __webpack_require__(7);
 
 var _user2 = _interopRequireDefault(_user);
 
-var _user3 = __webpack_require__(6);
+var _user3 = __webpack_require__(15);
 
 var _user4 = _interopRequireDefault(_user3);
 
@@ -157,7 +157,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var name = 'users';
 
-_angular2.default.module(name, []).component('userComponent', _user4.default).service('UserService', _user2.default);
+_angular2.default.module(name, []).controller('UserController', _user4.default).service('UserService', _user2.default);
 
 exports.default = {
     name: name
@@ -32553,45 +32553,7 @@ $provide.value("$locale", {
 !window.angular.$$csp().noInlineStyle && window.angular.element(document.head).prepend('<style type="text/css">@charset "UTF-8";[ng\\:cloak],[ng-cloak],[data-ng-cloak],[x-ng-cloak],.ng-cloak,.x-ng-cloak,.ng-hide:not(.ng-hide-animate){display:none !important;}ng\\:form{display:block;}.ng-animate-shim{visibility:hidden;}.ng-anchor{position:absolute;}</style>');
 
 /***/ },
-/* 6 */
-/***/ function(module, exports, __webpack_require__) {
-
-"use strict";
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-
-var _user = __webpack_require__(12);
-
-var _user2 = _interopRequireDefault(_user);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-var userComponent = {
-    bindings: {},
-    template: _user2.default,
-    controller: UserController
-};
-
-function UserController(UserService) {
-
-    var $ctrl = this;
-
-    function play() {
-        console.log($ctrl.name);
-    }
-
-    Object.assign(this, {
-        play: play
-    });
-}
-
-UserController.$inject = ['UserService'];
-exports.default = userComponent;
-
-/***/ },
+/* 6 */,
 /* 7 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -33212,12 +33174,7 @@ module.exports = firebase.storage;
 
 
 /***/ },
-/* 12 */
-/***/ function(module, exports) {
-
-module.exports = "<form name=\"play-scrabble\"\n\t  data-ng-submit=\"$ctrl.play()\"\n\t  novalidate>\n\t<label>\n\t\tName\n\t\t<input id=\"name\" \n\t\t\t   type=\"text\" \n\t\t\t   data-ng-model=\"$ctrl.name\" />\n\t</label>\n\t<input type=\"submit\" value=\"play\">\n</form>\n";
-
-/***/ },
+/* 12 */,
 /* 13 */
 /***/ function(module, exports) {
 
@@ -33261,6 +33218,10 @@ var _users = __webpack_require__(4);
 
 var _users2 = _interopRequireDefault(_users);
 
+var _board = __webpack_require__(16);
+
+var _board2 = _interopRequireDefault(_board);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // Initialize Firebase
@@ -33277,7 +33238,7 @@ var app = {
     version: '0.0.1'
 };
 
-_angular2.default.module(app.name, [_users2.default.name]);
+_angular2.default.module(app.name, [_users2.default.name, _board2.default.name]);
 _angular2.default.bootstrap(document, [app.name]);
 
 // const form = document.querySelector('form[name="play-scrabble"]');
@@ -33304,10 +33265,143 @@ _angular2.default.bootstrap(document, [app.name]);
 //     });
 // });
 
+/***/ },
+/* 15 */
+/***/ function(module, exports) {
 
-// firebase.database().ref('words/0').once('value', function(item) {
-//     console.log(item.val());
-// });
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function UserController(UserService) {
+
+    var $ctrl = this;
+
+    $ctrl.isValidUser = false;
+
+    function play() {
+        $ctrl.isValidUser = true;
+        return $ctrl.name;
+    }
+
+    Object.assign(this, {
+        play: play
+    });
+}
+
+UserController.$inject = ['UserService'];
+exports.default = UserController;
+
+/***/ },
+/* 16 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _angular = __webpack_require__(2);
+
+var _angular2 = _interopRequireDefault(_angular);
+
+var _board = __webpack_require__(17);
+
+var _board2 = _interopRequireDefault(_board);
+
+var _board3 = __webpack_require__(18);
+
+var _board4 = _interopRequireDefault(_board3);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var name = 'board';
+
+_angular2.default.module(name, []).component('boardComponent', _board2.default).service('BoardService', _board4.default);
+
+exports.default = {
+    name: name
+};
+
+/***/ },
+/* 17 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _board = __webpack_require__(19);
+
+var _board2 = _interopRequireDefault(_board);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var boardComponent = {
+    controller: BoardController,
+    template: _board2.default,
+    bindings: {
+        enabled: '<'
+    }
+};
+
+function BoardController(BoardService) {
+
+    this.$onChanges = function (changes) {
+        if (changes.enabled.currentValue) {
+            BoardService.getWord();
+        }
+    };
+}
+
+BoardController.$inject = ['BoardService'];
+
+exports.default = boardComponent;
+
+/***/ },
+/* 18 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _firebase = __webpack_require__(1);
+
+var _firebase2 = _interopRequireDefault(_firebase);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function BoardService() {
+
+    function getWord() {
+        _firebase2.default.database().ref('words/0').once('value', function (item) {
+            console.log(item.val());
+        });
+    }
+
+    Object.assign(this, {
+        getWord: getWord
+    });
+}
+
+exports.default = BoardService;
+
+/***/ },
+/* 19 */
+/***/ function(module, exports) {
+
+module.exports = "<div></div>\n";
 
 /***/ }
 /******/ ]);

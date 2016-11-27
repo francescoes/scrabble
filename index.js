@@ -1,6 +1,7 @@
 import firebase from 'firebase';
 import angular from 'angular';
 import users from './src/users';
+import board from './src/board';
 
 // Initialize Firebase
 firebase.initializeApp({
@@ -17,7 +18,10 @@ const app = {
     version: '0.0.1'
 }
 
-angular.module(app.name, [users.name]);
+angular.module(app.name, [
+    users.name,
+    board.name
+    ]);
 angular.bootstrap(document, [app.name]);
 
 // const form = document.querySelector('form[name="play-scrabble"]');
@@ -42,9 +46,4 @@ angular.bootstrap(document, [app.name]);
 //             name: name
 //         });
 //     });
-// });
-
-
-// firebase.database().ref('words/0').once('value', function(item) {
-//     console.log(item.val());
 // });
