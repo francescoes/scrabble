@@ -1,6 +1,17 @@
 <div class="board no-display text-center">
-	<h2 class="countdown text-right">{{$ctrl.secondsLeft}}</h2>
-	<h1 data-ng-repeat="letter in $ctrl.word" class="scrabbled-letter">{{letter}}</h1>
-	<div></div>
-	<h1 data-ng-repeat="letter in $ctrl.word" class="scrabbled-solution">-</h1>
+	<h2 class="countdown text-center">{{$ctrl.secondsLeft}}</h2>
+	<div class="flex wrap">
+		<h1 data-ng-repeat="letter in $ctrl.scrabbledWord track by $index"
+			data-ng-click="$ctrl.addToResult($index, this)"
+			class="scrabbled-letter flex">
+			{{letter}}
+		</h1>
+	</div>
+	<div class="flex wrap">
+		<h1 data-ng-repeat="letter in $ctrl.resultWord track by $index"
+			data-ng-click="$ctrl.deleteFromResult($index, this)"
+			class="scrabbled-solution flex">
+			{{letter}}
+		</h1>
+	</div>
 </div>

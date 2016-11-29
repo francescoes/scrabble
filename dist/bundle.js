@@ -32617,12 +32617,16 @@ function BoardController($element, $interval, BoardService) {
 
     var $ctrl = this;
 
+    var solution = void 0;
+    var scrabbledWord = void 0;
+
     $ctrl.$onChanges = function (changes) {
         if (!changes.enabled.currentValue) return;
 
-        BoardService.getWord().then(function (word) {
-            $ctrl.word = word.scrabble;
-            console.log(word);
+        BoardService.getWord().then(function (response) {
+            $ctrl.scrabbledWord = response.scrabble;
+            solution = response.word;
+            $ctrl.resultWord = Array(response.scrabble.length).fill('-').join('');
             showBoard();
             startCountdown();
         }).catch(function (error) {
@@ -32631,7 +32635,6 @@ function BoardController($element, $interval, BoardService) {
     };
 
     function showBoard() {
-        console.log($element);
         _angular2.default.element($element[0].firstChild).removeClass('no-display');
     }
 
@@ -32642,9 +32645,33 @@ function BoardController($element, $interval, BoardService) {
         }, 1000);
     }
 
+    function checkSolution() {
+        if ($ctrl.resultWord === solution) {
+            console.log('yes');
+        } else {
+            console.log('no');
+        }
+    }
+
+    function addToResult(index, element) {
+        $ctrl.resultWord = replaceAt($ctrl.resultWord.indexOf('-'), $ctrl.resultWord, element.letter);
+        if ($ctrl.resultWord.indexOf('-') === -1) {
+            checkSolution();
+        }
+    }
+
+    function deleteFromResult(index) {
+        $ctrl.resultWord = replaceAt(index, $ctrl.resultWord, '-');
+    }
+
+    function replaceAt(index, string, char) {
+        return string.replace(string.charAt(index), char);
+    }
+
     Object.assign($ctrl, {
-        word: '',
-        secondsLeft: 40
+        secondsLeft: 40,
+        addToResult: addToResult,
+        deleteFromResult: deleteFromResult
     });
 }
 
@@ -33384,7 +33411,7 @@ module.exports = firebase.storage;
 /* 14 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-right\">{{$ctrl.secondsLeft}}</h2>\n\t<h1 data-ng-repeat=\"letter in $ctrl.word\" class=\"scrabbled-letter\">{{letter}}</h1>\n\t<div></div>\n\t<h1 data-ng-repeat=\"letter in $ctrl.word\" class=\"scrabbled-solution\">-</h1>\n</div>\n";
+module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<div class=\"flex wrap\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrabbledWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.resultWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
 
 /***/ },
 /* 15 */

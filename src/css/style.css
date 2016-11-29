@@ -1,3 +1,20 @@
+.no-display {
+	opacity: 0;
+    position: absolute;
+}
+
+.flex {
+	display: flex;
+}
+
+.wrap {
+	flex-wrap: wrap;
+}
+
+.title {
+	font-size: 7rem;
+}
+
 .scrabble {
 	margin-top: 20rem;
 }
@@ -6,20 +23,15 @@
 	transform: all 0.5s;
 }
 
-.no-display {
-	opacity: 0;
-    position: absolute;
-}
-
 .scrabbled-solution,
 .scrabbled-letter {
-	display: inline-block;
-	text-transform: uppercase;
-	padding: 0 5px;
-	border: 1px solid black;
-	width: 7rem;
-}
-
-.scrabbled-solution {
-		
+    text-transform: uppercase;
+    padding: 0 5px;
+    border: 1px solid black;
+    width: 7rem;
+    height: 7rem;
+    cursor: pointer;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
 }

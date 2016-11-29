@@ -9,18 +9,21 @@ const boardComponent = {
     }
 };
 
-
 function BoardController($element, $interval, BoardService) {
 
     const $ctrl = this;
+    
+    let solution;
+    let scrabbledWord;
 
     $ctrl.$onChanges = (changes) => {
         if (!changes.enabled.currentValue) return;
 
         BoardService.getWord()
-            .then(word => {
-                $ctrl.word = word.scrabble;
-                console.log(word);
+            .then(response => {
+                $ctrl.scrabbledWord = response.scrabble;
+                solution = response.word;
+                $ctrl.resultWord = Array(response.scrabble.length).fill('-').join('');
                 showBoard();
                 startCountdown();
             })
@@ -28,7 +31,6 @@ function BoardController($element, $interval, BoardService) {
     };
 
     function showBoard() {
-        console.log($element);
         angular.element($element[0].firstChild).removeClass('no-display');
     }
 
@@ -39,9 +41,33 @@ function BoardController($element, $interval, BoardService) {
         }, 1000);
     }
 
+    function checkSolution () {
+        if ($ctrl.resultWord === solution) {
+            console.log('yes');
+        } else {
+            console.log('no');
+        }
+    }
+
+    function addToResult(index, element) {
+        $ctrl.resultWord = replaceAt($ctrl.resultWord.indexOf('-'), $ctrl.resultWord, element.letter);
+        if ($ctrl.resultWord.indexOf('-') === -1) {
+            checkSolution();
+        }
+    }
+
+    function deleteFromResult(index) {
+        $ctrl.resultWord = replaceAt(index, $ctrl.resultWord, '-');
+    }
+
+    function replaceAt(index, string, char) {
+        return string.replace(string.charAt(index), char);
+    }
+
     Object.assign($ctrl, {
-        word: '',
-        secondsLeft: 40
+        secondsLeft: 40,
+        addToResult,
+        deleteFromResult
     });
 }
 
