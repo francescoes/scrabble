@@ -32613,25 +32613,19 @@ var boardComponent = {
     }
 };
 
+// TODO: maybe refactor in a route resolve style
+
 function BoardController($element, $interval, BoardService) {
 
     var $ctrl = this;
 
+    var countdownStarted = false;
     var solution = void 0;
     var scrabbledWord = void 0;
 
     $ctrl.$onChanges = function (changes) {
         if (!changes.enabled.currentValue) return;
-
-        BoardService.getWord().then(function (response) {
-            $ctrl.scrabbledWord = response.scrabble;
-            solution = response.word;
-            $ctrl.resultWord = Array(response.scrabble.length).fill('-').join('');
-            showBoard();
-            startCountdown();
-        }).catch(function (error) {
-            return console.error(error);
-        });
+        getNewWord();
     };
 
     function showBoard() {
@@ -32639,25 +32633,38 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function startCountdown() {
+        countdownStarted = true;
         var stopInterval = $interval(function () {
             $ctrl.secondsLeft -= 1;
             if ($ctrl.secondsLeft === 0) $interval.cancel(stopInterval);
         }, 1000);
     }
 
+    function getNewWord() {
+        BoardService.getWord().then(function (response) {
+            $ctrl.scrabbledWord = response.scrabble;
+            solution = response.word;
+            $ctrl.resultWord = Array(response.scrabble.length).fill('-').join('');
+            showBoard();
+            if (!countdownStarted) startCountdown();
+        }).catch(function (error) {
+            return console.error(error);
+        });
+    }
+
     function checkSolution() {
-        if ($ctrl.resultWord === solution) {
-            console.log('yes');
-        } else {
-            console.log('no');
-        }
+        return $ctrl.resultWord === solution;
     }
 
     function addToResult(index, element) {
+        // the result string is already full
+        if (isBoardFull()) return;
         $ctrl.resultWord = replaceAt($ctrl.resultWord.indexOf('-'), $ctrl.resultWord, element.letter);
-        if ($ctrl.resultWord.indexOf('-') === -1) {
-            checkSolution();
-        }
+        if (isBoardFull() && checkSolution()) getNewWord();
+    }
+
+    function isBoardFull() {
+        return $ctrl.resultWord.indexOf('-') === -1;
     }
 
     function deleteFromResult(index) {
@@ -32665,7 +32672,7 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function replaceAt(index, string, char) {
-        return string.replace(string.charAt(index), char);
+        return '' + string.substr(0, index) + char + string.substr(index + 1);
     }
 
     Object.assign($ctrl, {
@@ -32700,8 +32707,10 @@ function BoardService($q) {
 
     function getWord() {
         var defer = $q.defer();
+        // TODO get the 1000 as length
+        var index = Math.floor(Math.random() * 1000) + 1;
 
-        _firebase2.default.database().ref('words/0').once('value').then(function (word) {
+        _firebase2.default.database().ref('words/' + index).once('value').then(function (word) {
             return defer.resolve(word.val());
         }).catch(function (error) {
             return defer.reject(error);
@@ -33411,7 +33420,7 @@ module.exports = firebase.storage;
 /* 14 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<div class=\"flex wrap\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrabbledWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.resultWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
+module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrabbledWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.resultWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
 
 /***/ },
 /* 15 */

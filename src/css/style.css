@@ -7,16 +7,16 @@
 	display: flex;
 }
 
+.justify-content-center {
+	justify-content: center;
+}
+
 .wrap {
 	flex-wrap: wrap;
 }
 
 .title {
 	font-size: 7rem;
-}
-
-.scrabble {
-	margin-top: 20rem;
 }
 
 .board {
