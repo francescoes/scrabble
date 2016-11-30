@@ -9,20 +9,16 @@ const boardComponent = {
     }
 };
 
-// TODO: maybe refactor in a route resolve style
-
 function BoardController($element, $interval, BoardService) {
 
     const $ctrl = this;
-    
     let countdownStarted = false;
     let solution;
-    let scrabbledWord;
 
-    $ctrl.$onChanges = (changes) => {
+    function $onChanges(changes) {
         if (!changes.enabled.currentValue) return;
         getNewWord();
-    };
+    }
 
     function showBoard() {
         angular.element($element[0].firstChild).removeClass('no-display');
@@ -31,17 +27,17 @@ function BoardController($element, $interval, BoardService) {
     function startCountdown() {
         countdownStarted = true;
         const stopInterval = $interval(() => {
-            $ctrl.secondsLeft -= 1;
-            if ($ctrl.secondsLeft === 0) $interval.cancel(stopInterval);
+            decrementSecondLeft();
+            if (getSecondLeft() === 0) $interval.cancel(stopInterval);
         }, 1000);
     }
 
     function getNewWord() {
         BoardService.getWord()
             .then(response => {
-                $ctrl.scrabbledWord = response.scrabble;
                 solution = response.word;
-                $ctrl.resultWord = Array(response.scrabble.length).fill('-').join('');
+                setScrambledWord(response.scrabble);
+                setResultWord(Array(response.scrabble).fill('-').join(''));
                 showBoard();
                 if (!countdownStarted) startCountdown();
             })
@@ -49,13 +45,14 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function checkSolution () {
-        return ($ctrl.resultWord === solution);
+        return (getResultWord() === solution);
     }
 
     function addToResult(index, element) {
         // the result string is already full
         if (isBoardFull())  return;
-        $ctrl.resultWord = replaceAt($ctrl.resultWord.indexOf('-'), $ctrl.resultWord, element.letter);
+        let resultWord = getResultWord();
+        setResultWord(replaceAt(resultWord.indexOf('-'), resultWord, element.letter));
         if (isBoardFull() && checkSolution()) getNewWord();
     }
 
@@ -64,20 +61,47 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function deleteFromResult(index) {
-        $ctrl.resultWord = replaceAt(index, $ctrl.resultWord, '-');
+        setResultWord(replaceAt(index, $ctrl.resultWord, '-'));
     }
 
     function replaceAt(index, string, char) {
         return `${string.substr(0, index)}${char}${string.substr(index + 1)}`;
     }
 
+    function resetBoard() {
+        setResultWord(Array(getResultWord().length).fill('-').join(''));
+    }
+
+    // function that access directly the scope
+
+    function decrementSecondLeft() {
+        $ctrl.secondsLeft -= 1;
+    }
+
+    function getSecondLeft() {
+        return $ctrl.secondsLeft;
+    }
+
+    function setScrambledWord(word) {
+        $ctrl.scrabbledWord = word;
+    }
+
+    function setResultWord(word) {
+        $ctrl.resultWord = word;
+    }
+
+    function getResultWord(word) {
+        return $ctrl.resultWord;
+    }
+
     Object.assign($ctrl, {
         secondsLeft: 40,
+        $onChanges,
         addToResult,
-        deleteFromResult
+        deleteFromResult,
+        resetBoard,
     });
 }
 
 BoardController.$inject = ['$element', '$interval', 'BoardService'];
-
 export default boardComponent;
