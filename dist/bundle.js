@@ -152,11 +152,15 @@ var _board3 = __webpack_require__(7);
 
 var _board4 = _interopRequireDefault(_board3);
 
+var _words = __webpack_require__(19);
+
+var _words2 = _interopRequireDefault(_words);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var name = 'board';
 
-_angular2.default.module(name, []).component('boardComponent', _board2.default).service('BoardService', _board4.default);
+_angular2.default.module(name, []).component('boardComponent', _board2.default).service('BoardService', _board4.default).service('WordsService', _words2.default);
 
 exports.default = {
     name: name
@@ -32607,8 +32611,6 @@ var _board3 = __webpack_require__(18);
 
 var _board4 = _interopRequireDefault(_board3);
 
-var _constants = __webpack_require__(17);
-
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var boardComponent = {
@@ -32632,10 +32634,6 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
 var _firebase = __webpack_require__(2);
 
 var _firebase2 = _interopRequireDefault(_firebase);
@@ -32644,99 +32642,42 @@ var _constants = __webpack_require__(17);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function BoardService($q) {
+function BoardService($q, WordsService) {
 
-    var wordsMappings = {};
-
-    function replaceAt(index, string, char) {
-        return '' + string.substr(0, index) + char + string.substr(index + 1);
+    function addToResult(scrambledIndex, letter, scrambledWord, resultWord) {
+        if (isResultBoardFull(resultWord) || letter === _constants.EMPTY_LETTER) return false;
+        var resultIndex = resultWord.indexOf(_constants.EMPTY_LETTER);
+        var scrambled = WordsService.replaceAt(scrambledIndex, scrambledWord, _constants.EMPTY_LETTER);
+        var result = WordsService.replaceAt(resultIndex, resultWord, letter);
+        WordsService.addToWordMapping(scrambledIndex, resultIndex, letter);
+        return { scrambled: scrambled, result: result };
     }
 
-    function initWordsMapping(scrabbled, solution) {
-        wordsMappings.originalScrambledWord = scrabbled;
-        wordsMappings.originalResultWord = Array(scrabbled.length).fill(_constants.EMPTY_LETTER).join('');
-        wordsMappings.solution = solution;
+    function deleteFromResult(resultIndex, letter, scrambledWord, resultWord) {
+        if (letter === _constants.EMPTY_LETTER) return false;
+        var mapping = WordsService.deleteFromWordMapping(resultIndex);
+        var result = WordsService.replaceAt(resultIndex, resultWord, _constants.EMPTY_LETTER);
+        var scrambled = WordsService.replaceAt(mapping.scrambledIndex, scrambledWord, mapping.letter);
+        return { scrambled: scrambled, result: result };
     }
 
-    function addToWordMapping(scrambledIndex, resultIndex, letter) {
-        wordsMappings[resultIndex] = {
-            scrambledIndex: scrambledIndex,
-            resultIndex: resultIndex,
-            letter: letter
-        };
+    function checkSolution(word) {
+        return word === WordsService.getOriginalWords().solution;
     }
 
-    function flushWordsMapping() {
-        var _iteratorNormalCompletion = true;
-        var _didIteratorError = false;
-        var _iteratorError = undefined;
-
-        try {
-            for (var _iterator = Object.entries(wordsMappings)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
-                var _step$value = _slicedToArray(_step.value, 2),
-                    key = _step$value[0],
-                    value = _step$value[1];
-
-                if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
-                    delete wordsMappings[key];
-                }
-            }
-        } catch (err) {
-            _didIteratorError = true;
-            _iteratorError = err;
-        } finally {
-            try {
-                if (!_iteratorNormalCompletion && _iterator.return) {
-                    _iterator.return();
-                }
-            } finally {
-                if (_didIteratorError) {
-                    throw _iteratorError;
-                }
-            }
-        }
-    }
-
-    function deleteFromWordMapping(resultIndex) {
-        var mapping = wordsMappings[resultIndex];
-        delete wordsMappings[resultIndex];
-        return mapping;
-    }
-
-    function getOriginalWords() {
-        return {
-            scrambled: wordsMappings.originalScrambledWord,
-            result: wordsMappings.originalResultWord,
-            solution: wordsMappings.solution
-        };
-    }
-
-    function getWord() {
-        var defer = $q.defer();
-        // TODO get the 1000 as length
-        var index = Math.floor(Math.random() * 1000) + 1;
-
-        _firebase2.default.database().ref('words/' + index).once('value').then(function (word) {
-            return defer.resolve(word.val());
-        }).catch(function (error) {
-            return defer.reject(error);
-        });
-
-        return defer.promise;
+    function isResultBoardFull(word) {
+        return word.indexOf(_constants.EMPTY_LETTER) === -1;
     }
 
     Object.assign(this, {
-        getWord: getWord,
-        replaceAt: replaceAt,
-        initWordsMapping: initWordsMapping,
-        addToWordMapping: addToWordMapping,
-        deleteFromWordMapping: deleteFromWordMapping,
-        flushWordsMapping: flushWordsMapping,
-        getOriginalWords: getOriginalWords
+        addToResult: addToResult,
+        deleteFromResult: deleteFromResult,
+        isResultBoardFull: isResultBoardFull,
+        checkSolution: checkSolution
     });
 }
 
-BoardService.$inject = ['$q'];
+BoardService.$inject = ['$q', 'WordsService'];
 exports.default = BoardService;
 
 /***/ },
@@ -33431,7 +33372,7 @@ module.exports = firebase.storage;
 /* 14 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrambled track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tdata-used=\"{{letter.used}}\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.result track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
+module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.words.scrambled track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this.letter)\"\n\t\t\tdata-used=\"{{letter.used}}\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.words.result track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this.letter)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
 
 /***/ },
 /* 15 */
@@ -33514,7 +33455,7 @@ var EMPTY_LETTER = exports.EMPTY_LETTER = '-';
 
 /***/ },
 /* 18 */
-/***/ function(module, exports) {
+/***/ function(module, exports, __webpack_require__) {
 
 "use strict";
 'use strict';
@@ -33522,9 +33463,13 @@ var EMPTY_LETTER = exports.EMPTY_LETTER = '-';
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-function BoardController($element, $interval, BoardService) {
+
+var _constants = __webpack_require__(17);
+
+function BoardController($element, $interval, WordsService, BoardService) {
 
     var $ctrl = this;
+    $ctrl.words = {};
     var countdownStarted = false;
 
     function $onChanges(changes) {
@@ -33537,28 +33482,28 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function resetBoard() {
-        var _BoardService$getOrig = BoardService.getOriginalWords(),
-            scrambled = _BoardService$getOrig.scrambled,
-            result = _BoardService$getOrig.result;
+        var _WordsService$getOrig = WordsService.getOriginalWords(),
+            scrambled = _WordsService$getOrig.scrambled,
+            result = _WordsService$getOrig.result;
 
         setWords({ scrambled: scrambled, result: result });
-        BoardService.flushWordsMapping();
+        WordsService.flushWordsMapping();
     }
 
     function startCountdown() {
         countdownStarted = true;
         var stopInterval = $interval(function () {
-            decrementSecondLeft();
-            if (getSecondLeft() === 0) $interval.cancel(stopInterval);
+            $ctrl.secondsLeft -= 1;
+            if ($ctrl.secondsLeft === 0) $interval.cancel(stopInterval);
         }, 1000);
     }
 
     function getNextWord() {
-        BoardService.getWord().then(function (response) {
-            BoardService.initWordsMapping(response.scrabble, response.word);
+        WordsService.getWord().then(function (response) {
+            WordsService.initWordsMapping(response.scrabble, response.word);
             setWords({
                 scrambled: response.scrabble,
-                result: BoardService.getOriginalWords().result
+                result: WordsService.getOriginalWords().result
             });
             showBoard();
             if (!countdownStarted) startCountdown();
@@ -33567,68 +33512,153 @@ function BoardController($element, $interval, BoardService) {
         });
     }
 
-    function addToResult(scrambledIndex, scrambledWordElement) {
-        if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER) return;
-        var resultWord = getResultWord();
-        var resultIndex = resultWord.indexOf(EMPTY_LETTER);
-        var scrambled = BoardService.replaceAt(scrambledIndex, getScrambledWord(), EMPTY_LETTER);
-        var result = BoardService.replaceAt(resultIndex, resultWord, scrambledWordElement.letter);
-        BoardService.addToWordMapping(scrambledIndex, resultIndex, scrambledWordElement.letter);
-        setWords({ scrambled: scrambled, result: result });
-        if (isBoardFull() && checkSolution()) getNextWord();
+    function addToResult(scrambledIndex, letter) {
+        var words = BoardService.addToResult(scrambledIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
+        if (!words) return;
+        setWords(words);
+        if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
+            getNextWord();
+        }
     }
 
-    function deleteFromResult(resultIndex, resultWordElement) {
-        if (resultWordElement.letter === EMPTY_LETTER) return;
-        var mapping = BoardService.deleteFromWordMapping(resultIndex);
-        var result = BoardService.replaceAt(resultIndex, getResultWord(), EMPTY_LETTER);
-        var scrambled = BoardService.replaceAt(mapping.scrambledIndex, getScrambledWord(), mapping.letter);
-        setWords({ scrambled: scrambled, result: result });
-    }
-
-    // checking functions
-
-    function checkSolution() {
-        return getResultWord() === BoardService.getOriginalWords().solution;
-    }
-
-    function isBoardFull() {
-        return getResultWord().indexOf(EMPTY_LETTER) === -1;
-    }
-
-    // function that access directly the scope
-
-    function decrementSecondLeft() {
-        $ctrl.secondsLeft -= 1;
-    }
-
-    function getSecondLeft() {
-        return $ctrl.secondsLeft;
+    function deleteFromResult(resultIndex, letter) {
+        var words = BoardService.deleteFromResult(resultIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
+        if (words) setWords(words);
     }
 
     function setWords(words) {
-        Object.assign($ctrl, words);
-    }
-
-    function getScrambledWord() {
-        return $ctrl.scrambled;
-    }
-
-    function getResultWord() {
-        return $ctrl.result;
+        Object.assign($ctrl.words, words);
     }
 
     Object.assign($ctrl, {
         secondsLeft: 40,
-        $onChanges: $onChanges,
         addToResult: addToResult,
+        $onChanges: $onChanges,
         deleteFromResult: deleteFromResult,
         resetBoard: resetBoard
     });
 }
 
-BoardController.$inject = ['$element', '$interval', 'BoardService'];
+BoardController.$inject = ['$element', '$interval', 'WordsService', 'BoardService'];
 exports.default = BoardController;
+
+/***/ },
+/* 19 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _firebase = __webpack_require__(2);
+
+var _firebase2 = _interopRequireDefault(_firebase);
+
+var _constants = __webpack_require__(17);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function WordsService($q) {
+
+    var wordsMappings = {};
+
+    function replaceAt(index, string, char) {
+        return '' + string.substr(0, index) + char + string.substr(index + 1);
+    }
+
+    function initWordsMapping(scrabbled, solution) {
+        wordsMappings.originalScrambledWord = scrabbled;
+        wordsMappings.originalResultWord = Array(scrabbled.length).fill(_constants.EMPTY_LETTER).join('');
+        wordsMappings.solution = solution;
+    }
+
+    function addToWordMapping(scrambledIndex, resultIndex, letter) {
+        wordsMappings[resultIndex] = {
+            scrambledIndex: scrambledIndex,
+            resultIndex: resultIndex,
+            letter: letter
+        };
+    }
+
+    function flushWordsMapping() {
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+            for (var _iterator = Object.entries(wordsMappings)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                var _step$value = _slicedToArray(_step.value, 2),
+                    key = _step$value[0],
+                    value = _step$value[1];
+
+                if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+                    delete wordsMappings[key];
+                }
+            }
+        } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion && _iterator.return) {
+                    _iterator.return();
+                }
+            } finally {
+                if (_didIteratorError) {
+                    throw _iteratorError;
+                }
+            }
+        }
+    }
+
+    function deleteFromWordMapping(resultIndex) {
+        var mapping = wordsMappings[resultIndex];
+        delete wordsMappings[resultIndex];
+        return mapping;
+    }
+
+    function getOriginalWords() {
+        return {
+            scrambled: wordsMappings.originalScrambledWord,
+            result: wordsMappings.originalResultWord,
+            solution: wordsMappings.solution
+        };
+    }
+
+    function getWord() {
+        var defer = $q.defer();
+        // TODO get the 1000 as length
+        var index = Math.floor(Math.random() * 1000) + 1;
+
+        _firebase2.default.database().ref('words/' + index).once('value').then(function (word) {
+            return defer.resolve(word.val());
+        }).catch(function (error) {
+            return defer.reject(error);
+        });
+
+        return defer.promise;
+    }
+
+    Object.assign(this, {
+        getWord: getWord,
+        replaceAt: replaceAt,
+        initWordsMapping: initWordsMapping,
+        addToWordMapping: addToWordMapping,
+        deleteFromWordMapping: deleteFromWordMapping,
+        flushWordsMapping: flushWordsMapping,
+        getOriginalWords: getOriginalWords
+    });
+}
+
+WordsService.$inject = ['$q'];
+exports.default = WordsService;
 
 /***/ }
 /******/ ]);
