@@ -33536,6 +33536,15 @@ function BoardController($element, $interval, BoardService) {
         angular.element($element[0].firstChild).removeClass('no-display');
     }
 
+    function resetBoard() {
+        var _BoardService$getOrig = BoardService.getOriginalWords(),
+            scrambled = _BoardService$getOrig.scrambled,
+            result = _BoardService$getOrig.result;
+
+        setWords({ scrambled: scrambled, result: result });
+        BoardService.flushWordsMapping();
+    }
+
     function startCountdown() {
         countdownStarted = true;
         var stopInterval = $interval(function () {
@@ -33558,10 +33567,6 @@ function BoardController($element, $interval, BoardService) {
         });
     }
 
-    function checkSolution() {
-        return getResultWord() === BoardService.getOriginalWords().solution;
-    }
-
     function addToResult(scrambledIndex, scrambledWordElement) {
         if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER) return;
         var resultWord = getResultWord();
@@ -33573,10 +33578,6 @@ function BoardController($element, $interval, BoardService) {
         if (isBoardFull() && checkSolution()) getNextWord();
     }
 
-    function isBoardFull() {
-        return getResultWord().indexOf(EMPTY_LETTER) === -1;
-    }
-
     function deleteFromResult(resultIndex, resultWordElement) {
         if (resultWordElement.letter === EMPTY_LETTER) return;
         var mapping = BoardService.deleteFromWordMapping(resultIndex);
@@ -33585,13 +33586,14 @@ function BoardController($element, $interval, BoardService) {
         setWords({ scrambled: scrambled, result: result });
     }
 
-    function resetBoard() {
-        var _BoardService$getOrig = BoardService.getOriginalWords(),
-            scrambled = _BoardService$getOrig.scrambled,
-            result = _BoardService$getOrig.result;
+    // checking functions
 
-        setWords({ scrambled: scrambled, result: result });
-        BoardService.flushWordsMapping();
+    function checkSolution() {
+        return getResultWord() === BoardService.getOriginalWords().solution;
+    }
+
+    function isBoardFull() {
+        return getResultWord().indexOf(EMPTY_LETTER) === -1;
     }
 
     // function that access directly the scope

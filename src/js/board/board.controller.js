@@ -12,6 +12,12 @@ function BoardController($element, $interval, BoardService) {
         angular.element($element[0].firstChild).removeClass('no-display');
     }
 
+    function resetBoard() {
+        const {scrambled, result} = BoardService.getOriginalWords();
+        setWords({scrambled, result});
+        BoardService.flushWordsMapping();
+    }
+
     function startCountdown() {
         countdownStarted = true;
         const stopInterval = $interval(() => {
@@ -34,10 +40,6 @@ function BoardController($element, $interval, BoardService) {
             .catch(error => console.error(error));
     }
 
-    function checkSolution() {
-        return (getResultWord() === BoardService.getOriginalWords().solution);
-    }
-
     function addToResult(scrambledIndex, scrambledWordElement) {
         if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER)  return;
         const resultWord = getResultWord();
@@ -49,10 +51,6 @@ function BoardController($element, $interval, BoardService) {
         if (isBoardFull() && checkSolution()) getNextWord();
     }
 
-    function isBoardFull() {
-        return getResultWord().indexOf(EMPTY_LETTER) === -1;
-    }
-
     function deleteFromResult(resultIndex, resultWordElement) {
         if (resultWordElement.letter === EMPTY_LETTER)  return;
         const mapping = BoardService.deleteFromWordMapping(resultIndex);
@@ -61,10 +59,14 @@ function BoardController($element, $interval, BoardService) {
         setWords({scrambled, result });
     }
 
-    function resetBoard() {
-        const {scrambled, result} = BoardService.getOriginalWords()
-        setWords({scrambled, result});
-        BoardService.flushWordsMapping();
+    // checking functions
+
+    function checkSolution() {
+        return (getResultWord() === BoardService.getOriginalWords().solution);
+    }
+
+    function isBoardFull() {
+        return getResultWord().indexOf(EMPTY_LETTER) === -1;
     }
 
     // function that access directly the scope
