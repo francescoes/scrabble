@@ -1,6 +1,9 @@
-function BoardController($element, $interval, BoardService) {
+import {EMPTY_LETTER} from '../constants';
+
+function BoardController($element, $interval, WordsService, BoardService) {
 
     const $ctrl = this;
+    $ctrl.words = {};
     let countdownStarted = false;
 
     function $onChanges(changes) {
@@ -13,26 +16,26 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function resetBoard() {
-        const {scrambled, result} = BoardService.getOriginalWords();
+        const {scrambled, result} = WordsService.getOriginalWords();
         setWords({scrambled, result});
-        BoardService.flushWordsMapping();
+        WordsService.flushWordsMapping();
     }
 
     function startCountdown() {
         countdownStarted = true;
         const stopInterval = $interval(() => {
-            decrementSecondLeft();
-            if (getSecondLeft() === 0) $interval.cancel(stopInterval);
+            $ctrl.secondsLeft -= 1;
+            if ($ctrl.secondsLeft === 0) $interval.cancel(stopInterval);
         }, 1000);
     }
 
     function getNextWord() {
-        BoardService.getWord()
+        WordsService.getWord()
             .then(response => {
-                BoardService.initWordsMapping(response.scrabble, response.word);
+                WordsService.initWordsMapping(response.scrabble, response.word);
                 setWords({
                     scrambled: response.scrabble,
-                    result: BoardService.getOriginalWords().result
+                    result: WordsService.getOriginalWords().result
                 });
                 showBoard();
                 if (!countdownStarted) startCountdown();
@@ -40,65 +43,32 @@ function BoardController($element, $interval, BoardService) {
             .catch(error => console.error(error));
     }
 
-    function addToResult(scrambledIndex, scrambledWordElement) {
-        if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER)  return;
-        const resultWord = getResultWord();
-        const resultIndex = resultWord.indexOf(EMPTY_LETTER);
-        const scrambled = BoardService.replaceAt(scrambledIndex, getScrambledWord(), EMPTY_LETTER);
-        const result = BoardService.replaceAt(resultIndex, resultWord, scrambledWordElement.letter);
-        BoardService.addToWordMapping(scrambledIndex, resultIndex, scrambledWordElement.letter);
-        setWords({scrambled, result});
-        if (isBoardFull() && checkSolution()) getNextWord();
+    function addToResult(scrambledIndex, letter) {
+        const words = BoardService.addToResult(scrambledIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
+        if (!words) return;
+        setWords(words);
+        if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
+            getNextWord();
+        }
     }
 
-    function deleteFromResult(resultIndex, resultWordElement) {
-        if (resultWordElement.letter === EMPTY_LETTER)  return;
-        const mapping = BoardService.deleteFromWordMapping(resultIndex);
-        const result = BoardService.replaceAt(resultIndex, getResultWord(), EMPTY_LETTER);
-        const scrambled = BoardService.replaceAt(mapping.scrambledIndex, getScrambledWord(), mapping.letter);
-        setWords({scrambled, result });
-    }
-
-    // checking functions
-
-    function checkSolution() {
-        return (getResultWord() === BoardService.getOriginalWords().solution);
-    }
-
-    function isBoardFull() {
-        return getResultWord().indexOf(EMPTY_LETTER) === -1;
-    }
-
-    // function that access directly the scope
-
-    function decrementSecondLeft() {
-        $ctrl.secondsLeft -= 1;
-    }
-
-    function getSecondLeft() {
-        return $ctrl.secondsLeft;
+    function deleteFromResult(resultIndex, letter) {
+        const words = BoardService.deleteFromResult(resultIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
+        if (words) setWords(words);
     }
 
     function setWords(words) {
-        Object.assign($ctrl, words); 
-    }
-
-    function getScrambledWord() {
-        return $ctrl.scrambled;
-    }
-
-    function getResultWord() {
-        return $ctrl.result;
+        Object.assign($ctrl.words, words); 
     }
 
     Object.assign($ctrl, {
         secondsLeft: 40,
-        $onChanges,
         addToResult,
+        $onChanges,
         deleteFromResult,
         resetBoard,
     });
 }
 
-BoardController.$inject = ['$element', '$interval', 'BoardService'];
+BoardController.$inject = ['$element', '$interval', 'WordsService', 'BoardService'];
 export default BoardController;

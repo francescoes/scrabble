@@ -1,72 +1,40 @@
 import firebase from 'firebase';
 import {EMPTY_LETTER} from '../constants';
 
-function BoardService($q) {
+function BoardService($q, WordsService) {
 
-    const wordsMappings = {};
-
-    function replaceAt(index, string, char) {
-        return `${string.substr(0, index)}${char}${string.substr(index + 1)}`;
+    function addToResult(scrambledIndex, letter, scrambledWord, resultWord) {
+        if (isResultBoardFull(resultWord) || letter === EMPTY_LETTER)  return false;
+        const resultIndex = resultWord.indexOf(EMPTY_LETTER);
+        const scrambled = WordsService.replaceAt(scrambledIndex, scrambledWord, EMPTY_LETTER);
+        const result = WordsService.replaceAt(resultIndex, resultWord, letter);
+        WordsService.addToWordMapping(scrambledIndex, resultIndex, letter);
+        return {scrambled, result};
     }
 
-    function initWordsMapping(scrabbled, solution) {
-        wordsMappings.originalScrambledWord = scrabbled;
-        wordsMappings.originalResultWord = Array(scrabbled.length).fill(EMPTY_LETTER).join('');
-        wordsMappings.solution = solution;
+    function deleteFromResult(resultIndex, letter, scrambledWord, resultWord) {
+        if (letter === EMPTY_LETTER)  return false;
+        const mapping = WordsService.deleteFromWordMapping(resultIndex);
+        const result = WordsService.replaceAt(resultIndex, resultWord, EMPTY_LETTER);
+        const scrambled = WordsService.replaceAt(mapping.scrambledIndex, scrambledWord, mapping.letter);
+        return {scrambled, result};
     }
 
-    function addToWordMapping(scrambledIndex, resultIndex, letter) {
-        wordsMappings[resultIndex] = {
-            scrambledIndex,
-            resultIndex,
-            letter
-        };
+    function checkSolution(word) {
+        return word === WordsService.getOriginalWords().solution;
     }
 
-    function flushWordsMapping() {
-        for (let [key, value] of Object.entries(wordsMappings)) {
-            if (typeof value === 'object') {
-                delete wordsMappings[key];
-            }
-        }
-    }
-
-    function deleteFromWordMapping(resultIndex) {
-        const mapping = wordsMappings[resultIndex];
-        delete wordsMappings[resultIndex];
-        return mapping;
-    }
-
-    function getOriginalWords() {
-        return {
-            scrambled: wordsMappings.originalScrambledWord,
-            result: wordsMappings.originalResultWord,
-            solution: wordsMappings.solution
-        };
-    }
-
-    function getWord() {
-        const defer = $q.defer();
-        // TODO get the 1000 as length
-        const index = Math.floor(Math.random() * 1000) + 1;
-
-        firebase.database().ref('words/' + index).once('value')
-            .then(word => defer.resolve(word.val()))
-            .catch(error => defer.reject(error))
-
-        return defer.promise;
+    function isResultBoardFull(word) {
+        return word.indexOf(EMPTY_LETTER) === -1;
     }
 
     Object.assign(this, {
-        getWord,
-        replaceAt,
-        initWordsMapping,
-        addToWordMapping, 
-        deleteFromWordMapping,
-        flushWordsMapping,
-        getOriginalWords
-    })
+        addToResult,
+        deleteFromResult,
+        isResultBoardFull,
+        checkSolution
+    });
 }
 
-BoardService.$inject = ['$q'];
+BoardService.$inject = ['$q', 'WordsService'];
 export default BoardService;
