@@ -2,7 +2,7 @@
 	<h2 class="countdown text-center">{{$ctrl.secondsLeft}}</h2>
 	<button class="btn btn-default" data-ng-click="$ctrl.resetBoard()">RESET</button>
 	<div class="flex wrap justify-content-center">
-		<h1 data-ng-repeat="letter in $ctrl.scrambledWord track by $index"
+		<h1 data-ng-repeat="letter in $ctrl.scrambled track by $index"
 			data-ng-click="$ctrl.addToResult($index, this)"
 			data-used="{{letter.used}}"
 			class="scrabbled-letter flex">
@@ -10,7 +10,7 @@
 		</h1>
 	</div>
 	<div class="flex wrap justify-content-center">
-		<h1 data-ng-repeat="letter in $ctrl.resultWord track by $index"
+		<h1 data-ng-repeat="letter in $ctrl.result track by $index"
 			data-ng-click="$ctrl.deleteFromResult($index, this)"
 			class="scrabbled-solution flex">
 			{{letter}}

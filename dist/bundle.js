@@ -32595,10 +32595,6 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
 var _angular = __webpack_require__(1);
 
 var _angular2 = _interopRequireDefault(_angular);
@@ -32607,59 +32603,62 @@ var _board = __webpack_require__(14);
 
 var _board2 = _interopRequireDefault(_board);
 
+var _board3 = __webpack_require__(18);
+
+var _board4 = _interopRequireDefault(_board3);
+
+var _constants = __webpack_require__(17);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var boardComponent = {
-    controller: BoardController,
+    controller: _board4.default,
     template: _board2.default,
     bindings: {
         enabled: '<'
     }
 };
 
-function BoardController($element, $interval, BoardService) {
+exports.default = boardComponent;
 
-    var EMPTY_LETTER = '-';
-    var $ctrl = this;
+/***/ },
+/* 7 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _firebase = __webpack_require__(2);
+
+var _firebase2 = _interopRequireDefault(_firebase);
+
+var _constants = __webpack_require__(17);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function BoardService($q) {
+
     var wordsMappings = {};
-    var countdownStarted = false;
-    var solution = void 0;
 
-    function $onChanges(changes) {
-        if (!changes.enabled.currentValue) return;
-        getNewWord();
+    function replaceAt(index, string, char) {
+        return '' + string.substr(0, index) + char + string.substr(index + 1);
     }
 
-    function showBoard() {
-        _angular2.default.element($element[0].firstChild).removeClass('no-display');
+    function initWordsMapping(scrabbled, solution) {
+        wordsMappings.originalScrambledWord = scrabbled;
+        wordsMappings.originalResultWord = Array(scrabbled.length).fill(_constants.EMPTY_LETTER).join('');
+        wordsMappings.solution = solution;
     }
 
-    function startCountdown() {
-        countdownStarted = true;
-        var stopInterval = $interval(function () {
-            decrementSecondLeft();
-            if (getSecondLeft() === 0) $interval.cancel(stopInterval);
-        }, 1000);
-    }
-
-    function getNewWord() {
-        BoardService.getWord().then(function (response) {
-            solution = response.word;
-            wordsMappings.originalScrambledWord = response.scrabble;
-            setScrambledWord(response.scrabble);
-            setResultWord(Array(response.scrabble.length).fill(EMPTY_LETTER).join(''));
-            showBoard();
-            if (!countdownStarted) startCountdown();
-        }).catch(function (error) {
-            return console.error(error);
-        });
-    }
-
-    function checkSolution() {
-        return getResultWord() === solution;
-    }
-
-    function addMapping(scrambledIndex, resultIndex, letter) {
+    function addToWordMapping(scrambledIndex, resultIndex, letter) {
         wordsMappings[resultIndex] = {
             scrambledIndex: scrambledIndex,
             resultIndex: resultIndex,
@@ -32698,99 +32697,19 @@ function BoardController($element, $interval, BoardService) {
         }
     }
 
-    function deleteMapping(resultIndex) {
+    function deleteFromWordMapping(resultIndex) {
         var mapping = wordsMappings[resultIndex];
         delete wordsMappings[resultIndex];
         return mapping;
     }
 
-    function addToResult(scrambledIndex, scrambledWordElement) {
-        if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER) return;
-        var resultWord = getResultWord();
-        var resultIndex = resultWord.indexOf(EMPTY_LETTER);
-        addMapping(scrambledIndex, resultIndex, scrambledWordElement.letter);
-        setScrambledWord(replaceAt(scrambledIndex, getScrambledWord(), EMPTY_LETTER));
-        setResultWord(replaceAt(resultIndex, resultWord, scrambledWordElement.letter));
-        if (isBoardFull() && checkSolution()) getNewWord();
+    function getOriginalWords() {
+        return {
+            scrambled: wordsMappings.originalScrambledWord,
+            result: wordsMappings.originalResultWord,
+            solution: wordsMappings.solution
+        };
     }
-
-    function isBoardFull() {
-        return getResultWord().indexOf(EMPTY_LETTER) === -1;
-    }
-
-    function deleteFromResult(resultIndex, resultWordElement) {
-        if (resultWordElement.letter === EMPTY_LETTER) return;
-        var mapping = deleteMapping(resultIndex);
-        setResultWord(replaceAt(resultIndex, getResultWord(), EMPTY_LETTER));
-        setScrambledWord(replaceAt(mapping.scrambledIndex, getScrambledWord(), mapping.letter));
-    }
-
-    function replaceAt(index, string, char) {
-        return '' + string.substr(0, index) + char + string.substr(index + 1);
-    }
-
-    function resetBoard() {
-        setResultWord(Array(getResultWord().length).fill(EMPTY_LETTER).join(''));
-        setScrambledWord(wordsMappings.originalScrambledWord);
-        flushWordsMapping();
-    }
-
-    // function that access directly the scope
-
-    function decrementSecondLeft() {
-        $ctrl.secondsLeft -= 1;
-    }
-
-    function getSecondLeft() {
-        return $ctrl.secondsLeft;
-    }
-
-    function setScrambledWord(word) {
-        $ctrl.scrambledWord = word;
-    }
-
-    function getScrambledWord() {
-        return $ctrl.scrambledWord;
-    }
-
-    function setResultWord(word) {
-        $ctrl.resultWord = word;
-    }
-
-    function getResultWord() {
-        return $ctrl.resultWord;
-    }
-
-    Object.assign($ctrl, {
-        secondsLeft: 40,
-        $onChanges: $onChanges,
-        addToResult: addToResult,
-        deleteFromResult: deleteFromResult,
-        resetBoard: resetBoard
-    });
-}
-
-BoardController.$inject = ['$element', '$interval', 'BoardService'];
-exports.default = boardComponent;
-
-/***/ },
-/* 7 */
-/***/ function(module, exports, __webpack_require__) {
-
-"use strict";
-'use strict';
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
-
-var _firebase = __webpack_require__(2);
-
-var _firebase2 = _interopRequireDefault(_firebase);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function BoardService($q) {
 
     function getWord() {
         var defer = $q.defer();
@@ -32807,12 +32726,17 @@ function BoardService($q) {
     }
 
     Object.assign(this, {
-        getWord: getWord
+        getWord: getWord,
+        replaceAt: replaceAt,
+        initWordsMapping: initWordsMapping,
+        addToWordMapping: addToWordMapping,
+        deleteFromWordMapping: deleteFromWordMapping,
+        flushWordsMapping: flushWordsMapping,
+        getOriginalWords: getOriginalWords
     });
 }
 
 BoardService.$inject = ['$q'];
-
 exports.default = BoardService;
 
 /***/ },
@@ -33507,7 +33431,7 @@ module.exports = firebase.storage;
 /* 14 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrambledWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tdata-used=\"{{letter.used}}\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.resultWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
+module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrambled track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tdata-used=\"{{letter.used}}\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.result track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
 
 /***/ },
 /* 15 */
@@ -33575,6 +33499,134 @@ var app = {
 
 _angular2.default.module(app.name, [_users2.default.name, _board2.default.name]);
 _angular2.default.bootstrap(document, [app.name]);
+
+/***/ },
+/* 17 */
+/***/ function(module, exports) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+var EMPTY_LETTER = exports.EMPTY_LETTER = '-';
+
+/***/ },
+/* 18 */
+/***/ function(module, exports) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function BoardController($element, $interval, BoardService) {
+
+    var $ctrl = this;
+    var countdownStarted = false;
+
+    function $onChanges(changes) {
+        if (!changes.enabled.currentValue) return;
+        getNextWord();
+    }
+
+    function showBoard() {
+        angular.element($element[0].firstChild).removeClass('no-display');
+    }
+
+    function startCountdown() {
+        countdownStarted = true;
+        var stopInterval = $interval(function () {
+            decrementSecondLeft();
+            if (getSecondLeft() === 0) $interval.cancel(stopInterval);
+        }, 1000);
+    }
+
+    function getNextWord() {
+        BoardService.getWord().then(function (response) {
+            BoardService.initWordsMapping(response.scrabble, response.word);
+            setWords({
+                scrambled: response.scrabble,
+                result: BoardService.getOriginalWords().result
+            });
+            showBoard();
+            if (!countdownStarted) startCountdown();
+        }).catch(function (error) {
+            return console.error(error);
+        });
+    }
+
+    function checkSolution() {
+        return getResultWord() === BoardService.getOriginalWords().solution;
+    }
+
+    function addToResult(scrambledIndex, scrambledWordElement) {
+        if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER) return;
+        var resultWord = getResultWord();
+        var resultIndex = resultWord.indexOf(EMPTY_LETTER);
+        var scrambled = BoardService.replaceAt(scrambledIndex, getScrambledWord(), EMPTY_LETTER);
+        var result = BoardService.replaceAt(resultIndex, resultWord, scrambledWordElement.letter);
+        BoardService.addToWordMapping(scrambledIndex, resultIndex, scrambledWordElement.letter);
+        setWords({ scrambled: scrambled, result: result });
+        if (isBoardFull() && checkSolution()) getNextWord();
+    }
+
+    function isBoardFull() {
+        return getResultWord().indexOf(EMPTY_LETTER) === -1;
+    }
+
+    function deleteFromResult(resultIndex, resultWordElement) {
+        if (resultWordElement.letter === EMPTY_LETTER) return;
+        var mapping = BoardService.deleteFromWordMapping(resultIndex);
+        var result = BoardService.replaceAt(resultIndex, getResultWord(), EMPTY_LETTER);
+        var scrambled = BoardService.replaceAt(mapping.scrambledIndex, getScrambledWord(), mapping.letter);
+        setWords({ scrambled: scrambled, result: result });
+    }
+
+    function resetBoard() {
+        var _BoardService$getOrig = BoardService.getOriginalWords(),
+            scrambled = _BoardService$getOrig.scrambled,
+            result = _BoardService$getOrig.result;
+
+        setWords({ scrambled: scrambled, result: result });
+        BoardService.flushWordsMapping();
+    }
+
+    // function that access directly the scope
+
+    function decrementSecondLeft() {
+        $ctrl.secondsLeft -= 1;
+    }
+
+    function getSecondLeft() {
+        return $ctrl.secondsLeft;
+    }
+
+    function setWords(words) {
+        Object.assign($ctrl, words);
+    }
+
+    function getScrambledWord() {
+        return $ctrl.scrambled;
+    }
+
+    function getResultWord() {
+        return $ctrl.result;
+    }
+
+    Object.assign($ctrl, {
+        secondsLeft: 40,
+        $onChanges: $onChanges,
+        addToResult: addToResult,
+        deleteFromResult: deleteFromResult,
+        resetBoard: resetBoard
+    });
+}
+
+BoardController.$inject = ['$element', '$interval', 'BoardService'];
+exports.default = BoardController;
 
 /***/ }
 /******/ ]);
