@@ -32595,6 +32595,10 @@ Object.defineProperty(exports, "__esModule", {
     value: true
 });
 
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
 var _angular = __webpack_require__(1);
 
 var _angular2 = _interopRequireDefault(_angular);
@@ -32615,7 +32619,9 @@ var boardComponent = {
 
 function BoardController($element, $interval, BoardService) {
 
+    var EMPTY_LETTER = '-';
     var $ctrl = this;
+    var wordsMappings = {};
     var countdownStarted = false;
     var solution = void 0;
 
@@ -32639,8 +32645,9 @@ function BoardController($element, $interval, BoardService) {
     function getNewWord() {
         BoardService.getWord().then(function (response) {
             solution = response.word;
+            wordsMappings.originalScrambledWord = response.scrabble;
             setScrambledWord(response.scrabble);
-            setResultWord(Array(response.scrabble).fill('-').join(''));
+            setResultWord(Array(response.scrabble.length).fill(EMPTY_LETTER).join(''));
             showBoard();
             if (!countdownStarted) startCountdown();
         }).catch(function (error) {
@@ -32652,20 +32659,70 @@ function BoardController($element, $interval, BoardService) {
         return getResultWord() === solution;
     }
 
-    function addToResult(index, element) {
-        // the result string is already full
-        if (isBoardFull()) return;
+    function addMapping(scrambledIndex, resultIndex, letter) {
+        wordsMappings[resultIndex] = {
+            scrambledIndex: scrambledIndex,
+            resultIndex: resultIndex,
+            letter: letter
+        };
+    }
+
+    function flushWordsMapping() {
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+            for (var _iterator = Object.entries(wordsMappings)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                var _step$value = _slicedToArray(_step.value, 2),
+                    key = _step$value[0],
+                    value = _step$value[1];
+
+                if ((typeof value === 'undefined' ? 'undefined' : _typeof(value)) === 'object') {
+                    delete wordsMappings[key];
+                }
+            }
+        } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion && _iterator.return) {
+                    _iterator.return();
+                }
+            } finally {
+                if (_didIteratorError) {
+                    throw _iteratorError;
+                }
+            }
+        }
+    }
+
+    function deleteMapping(resultIndex) {
+        var mapping = wordsMappings[resultIndex];
+        delete wordsMappings[resultIndex];
+        return mapping;
+    }
+
+    function addToResult(scrambledIndex, scrambledWordElement) {
+        if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER) return;
         var resultWord = getResultWord();
-        setResultWord(replaceAt(resultWord.indexOf('-'), resultWord, element.letter));
+        var resultIndex = resultWord.indexOf(EMPTY_LETTER);
+        addMapping(scrambledIndex, resultIndex, scrambledWordElement.letter);
+        setScrambledWord(replaceAt(scrambledIndex, getScrambledWord(), EMPTY_LETTER));
+        setResultWord(replaceAt(resultIndex, resultWord, scrambledWordElement.letter));
         if (isBoardFull() && checkSolution()) getNewWord();
     }
 
     function isBoardFull() {
-        return $ctrl.resultWord.indexOf('-') === -1;
+        return getResultWord().indexOf(EMPTY_LETTER) === -1;
     }
 
-    function deleteFromResult(index) {
-        setResultWord(replaceAt(index, $ctrl.resultWord, '-'));
+    function deleteFromResult(resultIndex, resultWordElement) {
+        if (resultWordElement.letter === EMPTY_LETTER) return;
+        var mapping = deleteMapping(resultIndex);
+        setResultWord(replaceAt(resultIndex, getResultWord(), EMPTY_LETTER));
+        setScrambledWord(replaceAt(mapping.scrambledIndex, getScrambledWord(), mapping.letter));
     }
 
     function replaceAt(index, string, char) {
@@ -32673,7 +32730,9 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function resetBoard() {
-        setResultWord(Array(getResultWord().length).fill('-').join(''));
+        setResultWord(Array(getResultWord().length).fill(EMPTY_LETTER).join(''));
+        setScrambledWord(wordsMappings.originalScrambledWord);
+        flushWordsMapping();
     }
 
     // function that access directly the scope
@@ -32687,14 +32746,18 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function setScrambledWord(word) {
-        $ctrl.scrabbledWord = word;
+        $ctrl.scrambledWord = word;
+    }
+
+    function getScrambledWord() {
+        return $ctrl.scrambledWord;
     }
 
     function setResultWord(word) {
         $ctrl.resultWord = word;
     }
 
-    function getResultWord(word) {
+    function getResultWord() {
         return $ctrl.resultWord;
     }
 
@@ -33444,7 +33507,7 @@ module.exports = firebase.storage;
 /* 14 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrabbledWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.resultWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
+module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.scrambledWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this)\"\n\t\t\tdata-used=\"{{letter.used}}\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.resultWord track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
 
 /***/ },
 /* 15 */

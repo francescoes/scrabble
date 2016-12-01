@@ -11,9 +11,12 @@ const boardComponent = {
 
 function BoardController($element, $interval, BoardService) {
 
+    const EMPTY_LETTER = '-';
     const $ctrl = this;
+    const wordsMappings = {};    
     let countdownStarted = false;
     let solution;
+
 
     function $onChanges(changes) {
         if (!changes.enabled.currentValue) return;
@@ -36,8 +39,9 @@ function BoardController($element, $interval, BoardService) {
         BoardService.getWord()
             .then(response => {
                 solution = response.word;
+                wordsMappings.originalScrambledWord = response.scrabble;
                 setScrambledWord(response.scrabble);
-                setResultWord(Array(response.scrabble).fill('-').join(''));
+                setResultWord(Array(response.scrabble.length).fill(EMPTY_LETTER).join(''));
                 showBoard();
                 if (!countdownStarted) startCountdown();
             })
@@ -48,20 +52,47 @@ function BoardController($element, $interval, BoardService) {
         return (getResultWord() === solution);
     }
 
-    function addToResult(index, element) {
-        // the result string is already full
-        if (isBoardFull())  return;
-        let resultWord = getResultWord();
-        setResultWord(replaceAt(resultWord.indexOf('-'), resultWord, element.letter));
+    function addMapping(scrambledIndex, resultIndex, letter) {
+        wordsMappings[resultIndex] = { 
+            scrambledIndex, 
+            resultIndex, 
+            letter
+        };
+    }
+
+    function flushWordsMapping() {
+        for (let [key, value] of Object.entries(wordsMappings)) {
+            if (typeof value === 'object') {
+                delete wordsMappings[key];
+            }
+        }
+    }
+
+    function deleteMapping(resultIndex) {
+        const mapping = wordsMappings[resultIndex];
+        delete wordsMappings[resultIndex];
+        return mapping;
+    }
+
+    function addToResult(scrambledIndex, scrambledWordElement) {
+        if (isBoardFull() || scrambledWordElement.letter === EMPTY_LETTER)  return;
+        const resultWord = getResultWord();
+        const resultIndex = resultWord.indexOf(EMPTY_LETTER);
+        addMapping(scrambledIndex, resultIndex, scrambledWordElement.letter);
+        setScrambledWord(replaceAt(scrambledIndex, getScrambledWord(), EMPTY_LETTER));
+        setResultWord(replaceAt(resultIndex, resultWord, scrambledWordElement.letter));
         if (isBoardFull() && checkSolution()) getNewWord();
     }
 
     function isBoardFull() {
-        return $ctrl.resultWord.indexOf('-') === -1;
+        return getResultWord().indexOf(EMPTY_LETTER) === -1;
     }
 
-    function deleteFromResult(index) {
-        setResultWord(replaceAt(index, $ctrl.resultWord, '-'));
+    function deleteFromResult(resultIndex, resultWordElement) {
+        if (resultWordElement.letter === EMPTY_LETTER)  return;
+        const mapping = deleteMapping(resultIndex);
+        setResultWord(replaceAt(resultIndex, getResultWord(), EMPTY_LETTER));
+        setScrambledWord(replaceAt(mapping.scrambledIndex, getScrambledWord(), mapping.letter));
     }
 
     function replaceAt(index, string, char) {
@@ -69,7 +100,9 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function resetBoard() {
-        setResultWord(Array(getResultWord().length).fill('-').join(''));
+        setResultWord(Array(getResultWord().length).fill(EMPTY_LETTER).join(''));
+        setScrambledWord(wordsMappings.originalScrambledWord);
+        flushWordsMapping();
     }
 
     // function that access directly the scope
@@ -83,14 +116,18 @@ function BoardController($element, $interval, BoardService) {
     }
 
     function setScrambledWord(word) {
-        $ctrl.scrabbledWord = word;
+        $ctrl.scrambledWord = word;
+    }
+
+    function getScrambledWord() {
+        return $ctrl.scrambledWord;
     }
 
     function setResultWord(word) {
         $ctrl.resultWord = word;
     }
 
-    function getResultWord(word) {
+    function getResultWord() {
         return $ctrl.resultWord;
     }
 
