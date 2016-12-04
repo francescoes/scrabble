@@ -33239,7 +33239,7 @@ module.exports = firebase.storage;
 /* 14 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<h2 class=\"text-center\">{{$ctrl.username}}</h2>\n\t<h2 class=\"text-center\">{{$ctrl.score}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.words.scrambled track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this.letter)\"\n\t\t\tdata-used=\"{{letter.used}}\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.words.result track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this.letter)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
+module.exports = "<div class=\"board no-display text-center\">\n\t<h2 class=\"countdown text-center\">{{$ctrl.secondsLeft}}</h2>\n\t<h2 class=\"text-center\">Player: {{$ctrl.name}}</h2>\n\t<h2 class=\"text-center\">Score: {{$ctrl.score}}</h2>\n\t<button class=\"btn btn-default\" data-ng-click=\"$ctrl.resetBoard()\">RESET</button>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.words.scrambled track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.addToResult($index, this.letter)\"\n\t\t\tdata-used=\"{{letter.used}}\"\n\t\t\tclass=\"scrabbled-letter flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n\t<div class=\"flex wrap justify-content-center\">\n\t\t<h1 data-ng-repeat=\"letter in $ctrl.words.result track by $index\"\n\t\t\tdata-ng-click=\"$ctrl.deleteFromResult($index, this.letter)\"\n\t\t\tclass=\"scrabbled-solution flex\">\n\t\t\t{{letter}}\n\t\t</h1>\n\t</div>\n</div>\n";
 
 /***/ },
 /* 15 */
@@ -33319,25 +33319,17 @@ _angular2.default.module(app.name, ['ui.router', _user2.default.name, _board2.de
         template: '<user></user>'
     }).state('game', {
         url: '/board',
-        template: '<board></board>',
-        params: {
-            username: '',
-            score: 0
-        }
+        template: '<board></board>'
     }).state('highScore', {
         url: '/high-score',
-        template: '<high-score></high-score>',
-        params: {
-            username: '',
-            score: 0
-        }
+        template: '<high-score></high-score>'
     });
 
     $urlRouterProvider.otherwise('/');
 }).run(function ($rootScope, $state, UserService) {
     $rootScope.$on('$stateChangeStart', function (ev, to, toParams, from, fromParams) {
 
-        if (to.name === 'game' && !UserService.username) {
+        if (to.name === 'game' && !UserService.name) {
             ev.preventDefault();
             $state.go('scrabble');
         }
@@ -33371,15 +33363,17 @@ Object.defineProperty(exports, "__esModule", {
 
 var _constants = __webpack_require__(17);
 
-function BoardController($state, $interval, WordsService, BoardService, ScoreService) {
+function BoardController($state, $interval, WordsService, BoardService, ScoreService, UserService) {
 
     var $ctrl = this;
+    var secondsLeft = 40;
     $ctrl.words = {};
     $ctrl.user = {};
     var countdownStarted = false;
 
     $ctrl.$onInit = function () {
-        setUserData($state.params.username, $state.params.score);
+        setName(UserService.getName());
+        setScore(0);
         getNextWord();
     };
 
@@ -33406,8 +33400,8 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
     }
 
     function stopGame() {
-        ScoreService.storeScore($state.params.username).then(function () {
-            return $state.go('highScore', { username: $state.params.username, score: ScoreService.getScore() });
+        ScoreService.storeScore(UserService.getName()).then(function () {
+            return $state.go('highScore', { name: UserService.getName(), score: ScoreService.getScore() });
         }).catch(function (error) {
             return console.error(error);
         });
@@ -33416,10 +33410,10 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
     function getNextWord() {
         WordsService.getWord().then(function (response) {
             setWords({
-                scrambled: response.scrabble,
+                scrambled: response.scrambled,
                 result: WordsService.getOriginalWords().result
             });
-            ScoreService.calculateMaxScore(response.scrabble.length);
+            ScoreService.calculateMaxScore(response.scrambled.length);
             if (!countdownStarted) startCountdown();
         }).catch(function (error) {
             return console.error(error);
@@ -33432,6 +33426,7 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
         setWords(words);
         if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
             ScoreService.calculateActualScore();
+            setScore(ScoreService.getScore());
             getNextWord();
         }
     }
@@ -33450,20 +33445,23 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
         return $ctrl.words.result;
     }
 
-    function setUserData(username, score) {
-        $ctrl.username = username;
+    function setName(name) {
+        $ctrl.name = name;
+    }
+
+    function setScore(score) {
         $ctrl.score = score;
     }
 
     Object.assign($ctrl, {
-        secondsLeft: 40,
+        secondsLeft: secondsLeft,
         addToResult: addToResult,
         deleteFromResult: deleteFromResult,
         resetBoard: resetBoard
     });
 }
 
-BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService', 'ScoreService'];
+BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService', 'ScoreService', 'UserService'];
 exports.default = BoardController;
 
 /***/ },
@@ -33563,7 +33561,7 @@ function WordsService($q) {
 
         _firebase2.default.database().ref('words/' + index).once('value').then(function (response) {
             var word = response.val();
-            initWordsMapping(word.scrabble, word.word);
+            initWordsMapping(word.scrambled, word.word);
             defer.resolve(word);
         }).catch(function (error) {
             return defer.reject(error);
@@ -38221,19 +38219,24 @@ function UserController($state, UserService) {
     var $ctrl = this;
 
     function play() {
+        if (!$ctrl.name) {
+            // TODO: form validation
+            return;
+        }
+
         UserService.getUser($ctrl.name).then(function (user) {
             if (!user) {
                 UserService.setUser($ctrl.name).then(function () {
                     if ($ctrl.name) {
-                        UserService.username = $ctrl.name;
-                        $state.go('game', { username: $ctrl.name, score: 0 });
+                        UserService.setName($ctrl.name);
+                        $state.go('game');
                     }
                 }).catch(function (error) {
                     return console.error(error);
                 });
             } else {
-                UserService.username = $ctrl.name;
-                $state.go('game', { username: $ctrl.name, score: UserService.score });
+                UserService.setName($ctrl.name);
+                $state.go('game');
             }
         }).catch(function (error) {
             return console.error(error);
@@ -38319,7 +38322,7 @@ exports.default = {
 /* 24 */
 /***/ function(module, exports) {
 
-module.exports = "<div class=\"\">\n    <form class=\"form-inline text-center\" name=\"play-scrabble\" data-ng-submit=\"$ctrl.play()\" novalidate>\n        <div class=\"form-group\">\n            <label>Name <input class=\"form-control\" type=\"text\" data-ng-model=\"$ctrl.name\" /></label>\n            <button type=\"submit\" class=\"btn btn-default\">PLAY</button>\n        </div>\n    </form>\n</div>\n";
+module.exports = "<div class=\"\">\n    <form class=\"form-inline text-center\" name=\"play-scrabble\" data-ng-submit=\"$ctrl.play()\" novalidate>\n        <div class=\"form-group\">\n            <label>Name <input class=\"form-control\" type=\"text\" data-ng-model=\"$ctrl.name\" /></label>\n            <button type=\"submit\" class=\"btn btn-default\">PLAY</button>\n        </div>\n    </form>\n    <div class=\"text-center\">\n        <button ui-sref=\"highScore\" type=\"submit\" class=\"btn btn-default\">HIGH SCORES</button>\n    </div>\n</div>\n";
 
 /***/ },
 /* 25 */
@@ -38340,11 +38343,60 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 function UserService($q) {
 
+    var USERS = 'users/';
+    var userService = this;
+
+    function setName(name) {
+        userService.name = name;
+    }
+
+    function getName() {
+        return userService.name;
+    }
+
     function getUser(name) {
         var defer = $q.defer();
 
-        _firebase2.default.database().ref('users/' + name).once('value').then(function (response) {
+        _firebase2.default.database().ref(USERS + name).once('value').then(function (response) {
             return defer.resolve(response.val());
+        }).catch(function (error) {
+            return defer.reject(error);
+        });
+
+        return defer.promise;
+    }
+
+    function setScore(name, score) {
+        var defer = $q.defer();
+
+        _firebase2.default.database().ref(USERS + name).once('value').then(function (response) {
+            var currentScore = response.val().score;
+            if (score > currentScore) {
+                setNewScore();
+            } else {
+                defer.resolve({ name: name, currentScore: currentScore });
+            }
+        }).catch(function (error) {
+            return defer.reject(error);
+        });
+
+        function setNewScore() {
+            _firebase2.default.database().ref(USERS + name).set({ name: name, score: score }).then(function () {
+                return defer.resolve({ name: name, score: score });
+            }).catch(function (error) {
+                return defer.reject(error);
+            });
+        }
+
+        return defer.promise;
+    }
+
+    function getScores() {
+        var defer = $q.defer();
+
+        _firebase2.default.database().ref(USERS).once('value').then(function (response) {
+            var scores = response.val() || [];
+            defer.resolve(scores);
         }).catch(function (error) {
             return defer.reject(error);
         });
@@ -38359,7 +38411,7 @@ function UserService($q) {
             score: 0
         };
 
-        _firebase2.default.database().ref('users/' + name).set(user).then(function () {
+        _firebase2.default.database().ref(USERS + name).set(user).then(function () {
             return defer.resolve(user);
         }).catch(function (error) {
             return defer.reject(error);
@@ -38371,7 +38423,11 @@ function UserService($q) {
     Object.assign(this, {
         setUser: setUser,
         getUser: getUser,
-        username: '',
+        setScore: setScore,
+        setName: setName,
+        getName: getName,
+        getScores: getScores,
+        name: '',
         score: 0
     });
 }
@@ -38398,7 +38454,7 @@ var _constants = __webpack_require__(17);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function ScoreService($q) {
+function ScoreService($q, UserService) {
 
     var score = 0;
     var maxScore = void 0;
@@ -38422,47 +38478,13 @@ function ScoreService($q) {
         return score;
     }
 
-    function storeScore(username) {
-        var defer = $q.defer();
+    function storeScore(name) {
         var score = getScore();
-
-        var highScore = {
-            username: username,
-            score: score
-        };
-
-        _firebase2.default.database().ref('highScore/' + username).once('value').then(function (response) {
-            var currentScore = response.val().score;
-            if (score > currentScore) {
-                setNewScore();
-            } else {
-                defer.resolve({ username: username, currentScore: currentScore });
-            }
-        }).catch(function (error) {
-            return defer.reject(error);
-        });
-
-        function setNewScore() {
-            _firebase2.default.database().ref('highScore/' + username).set(highScore).then(function () {
-                return defer.resolve(highScore);
-            }).catch(function (error) {
-                return defer.reject(error);
-            });
-        }
-
-        return defer.promise;
+        return UserService.setScore(name, score);
     }
 
     function getScores() {
-        var defer = $q.defer();
-
-        _firebase2.default.database().ref('highScore/').once('value').then(function (response) {
-            return defer.resolve(response.val());
-        }).catch(function (error) {
-            return defer.reject(error);
-        });
-
-        return defer.promise;
+        return UserService.getScores();
     }
 
     Object.assign(this, {
@@ -38475,7 +38497,7 @@ function ScoreService($q) {
     });
 }
 
-ScoreService.$inject = ['$q'];
+ScoreService.$inject = ['$q', 'UserService'];
 exports.default = ScoreService;
 
 /***/ },
@@ -38598,7 +38620,7 @@ exports.default = HighScoreController;
 /* 30 */
 /***/ function(module, exports) {
 
-module.exports = "<h1>High Score</h1>\n<table class=\"table\">\n    <thead>\n        <tr>\n            <th>Username</th>\n            <th>Score</th>\n        </tr>\n    </thead>\n    <tbody>\n        <tr data-ng-repeat=\"highScore in $ctrl.highScores\">\n            <td>{{highScore.username}}</td>\n            <td>{{highScore.score}}</td>\n        </tr>\n    </tbody>\n</table>\n";
+module.exports = "<h1>High Score</h1>\n<table class=\"table\">\n    <thead>\n        <tr>\n            <th>Username</th>\n            <th>Score</th>\n        </tr>\n    </thead>\n    <tbody>\n        <tr data-ng-repeat=\"highScore in $ctrl.highScores\">\n            <td>{{highScore.name}}</td>\n            <td>{{highScore.score}}</td>\n        </tr>\n    </tbody>\n</table>\n\n<div class=\"text-center\">\n    <button ui-sref=\"game\" type=\"submit\" class=\"btn btn-default\">PLAY AGAIN</button>\n</div>\n";
 
 /***/ }
 /******/ ]);

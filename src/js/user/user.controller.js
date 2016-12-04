@@ -5,20 +5,25 @@ function UserController($state, UserService) {
     const $ctrl = this;
 
     function play() {
+        if (!$ctrl.name) {
+            // TODO: form validation
+            return;
+        } 
+
         UserService.getUser($ctrl.name)
             .then(user => {
                 if (!user) {
                     UserService.setUser($ctrl.name)
                         .then(() => {
                             if($ctrl.name) {
-                                UserService.username = $ctrl.name;
-                                $state.go('game', {username: $ctrl.name, score: 0});
+                                UserService.setName($ctrl.name);
+                                $state.go('game');
                             }
                         }) 
                         .catch((error) => console.error(error));
                 } else {
-                    UserService.username = $ctrl.name;
-                    $state.go('game', {username: $ctrl.name, score: UserService.score});
+                    UserService.setName($ctrl.name);
+                    $state.go('game');
                 }
             })
             .catch(error => console.error(error));

@@ -53,7 +53,7 @@ function WordsService($q) {
         firebase.database().ref('words/' + index).once('value')
             .then(response => {
                 const word = response.val();
-                initWordsMapping(word.scrabble, word.word);
+                initWordsMapping(word.scrambled, word.word);
                 defer.resolve(word);
             })
             .catch(error => defer.reject(error))

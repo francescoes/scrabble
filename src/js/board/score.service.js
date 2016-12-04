@@ -1,7 +1,7 @@
 import firebase from 'firebase';
 import {EMPTY_LETTER} from '../constants';
 
-function ScoreService($q) {
+function ScoreService($q, UserService) {
 
     let score = 0;
     let maxScore;
@@ -23,43 +23,13 @@ function ScoreService($q) {
         return score;
     }
 
-    function storeScore(username) {
-        const defer = $q.defer();
+    function storeScore(name) {
         const score = getScore();
-        
-        const highScore = {
-            username,
-            score
-        };
-
-        firebase.database().ref('highScore/' + username).once('value')
-            .then((response) => {
-                const currentScore = response.val().score;
-                if (score > currentScore) {
-                    setNewScore();
-                } else {
-                    defer.resolve({username, currentScore});
-                }
-            })
-            .catch(error => defer.reject(error));
-
-        function setNewScore() {
-            firebase.database().ref('highScore/' + username).set(highScore)
-            .then(() => defer.resolve(highScore))
-            .catch(error => defer.reject(error));
-        }
-
-        return defer.promise;
+        return UserService.setScore(name, score);
     }
 
     function getScores() {
-        const defer = $q.defer();
-        
-        firebase.database().ref('highScore/').once('value')
-            .then((response) => defer.resolve(response.val()))
-            .catch(error => defer.reject(error));
-
-        return defer.promise;
+        return UserService.getScores();
     }
 
     Object.assign(this, {
@@ -72,5 +42,5 @@ function ScoreService($q) {
     });
 }
 
-ScoreService.$inject = ['$q'];
+ScoreService.$inject = ['$q', 'UserService'];
 export default ScoreService;

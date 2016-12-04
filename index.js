@@ -30,18 +30,10 @@ angular.module(app.name, [
             template: '<user></user>'
         }).state('game', {
             url: '/board',
-            template: '<board></board>',
-            params: {
-                username: '',
-                score: 0
-            }
+            template: '<board></board>'
         }).state('highScore', {
             url: '/high-score',
-            template: '<high-score></high-score>',
-            params: {
-                username: '',
-                score: 0
-            }
+            template: '<high-score></high-score>'
         });
 
         $urlRouterProvider.otherwise('/');
@@ -49,7 +41,7 @@ angular.module(app.name, [
     .run(function ($rootScope, $state, UserService) {
         $rootScope.$on('$stateChangeStart', function (ev, to, toParams, from, fromParams) {
 
-            if (to.name === 'game' && !UserService.username) {
+            if (to.name === 'game' && !UserService.name) {
                 ev.preventDefault();
                 $state.go('scrabble');
             }

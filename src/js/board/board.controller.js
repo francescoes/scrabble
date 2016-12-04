@@ -1,14 +1,16 @@
 import {EMPTY_LETTER} from '../constants';
 
-function BoardController($state, $interval, WordsService, BoardService, ScoreService) {
+function BoardController($state, $interval, WordsService, BoardService, ScoreService, UserService) {
 
     const $ctrl = this;
+    const secondsLeft = 40;
     $ctrl.words = {};
     $ctrl.user = {};
     let countdownStarted = false;
 
     $ctrl.$onInit = () => {
-        setUserData($state.params.username, $state.params.score);
+        setName(UserService.getName());
+        setScore(0);
         getNextWord();
     };
 
@@ -32,8 +34,8 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
     }
 
     function stopGame() {
-        ScoreService.storeScore($state.params.username)
-            .then(() => $state.go('highScore', {username: $state.params.username, score: ScoreService.getScore()}))
+        ScoreService.storeScore(UserService.getName())
+            .then(() => $state.go('highScore', {name: UserService.getName(), score: ScoreService.getScore()}))
             .catch(error => console.error(error));
     }
 
@@ -41,10 +43,10 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
         WordsService.getWord()
             .then(response => {
                 setWords({
-                    scrambled: response.scrabble,
+                    scrambled: response.scrambled,
                     result: WordsService.getOriginalWords().result
                 });
-                ScoreService.calculateMaxScore(response.scrabble.length);
+                ScoreService.calculateMaxScore(response.scrambled.length);
                 if (!countdownStarted) startCountdown();
             })
             .catch(error => console.error(error));
@@ -56,6 +58,7 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
         setWords(words);
         if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
             ScoreService.calculateActualScore();
+            setScore(ScoreService.getScore());
             getNextWord();
         }
     }
@@ -74,18 +77,21 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
         return $ctrl.words.result;
     }
 
-    function setUserData(username, score) {
-        $ctrl.username = username;
+    function setName(name) {
+        $ctrl.name = name;
+    }
+
+    function setScore(score) {
         $ctrl.score = score;
     }
 
     Object.assign($ctrl, {
-        secondsLeft: 40,
+        secondsLeft,
         addToResult,
         deleteFromResult,
         resetBoard,
     });
 }
 
-BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService', 'ScoreService'];
+BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService', 'ScoreService', 'UserService'];
 export default BoardController;
