@@ -14,6 +14,8 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
 
     function resetBoard() {
         const {scrambled, result} = WordsService.getOriginalWords();
+        const emptyLetterCount = (getCurrentResult().match(/-/g) || []).length;
+        ScoreService.decrementMaxScore(result.length - emptyLetterCount); 
         setWords({scrambled, result});
         WordsService.flushWordsMapping();
     }
@@ -30,7 +32,9 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
     }
 
     function stopGame() {
-        console.log(ScoreService.getScore());
+        ScoreService.storeScore($state.params.username)
+            .then(() => $state.go('highScore', {username: $state.params.username, score: ScoreService.getScore()}))
+            .catch(error => console.error(error));
     }
 
     function getNextWord() {
@@ -40,7 +44,7 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
                     scrambled: response.scrabble,
                     result: WordsService.getOriginalWords().result
                 });
-                ScoreService.initScore(response.scrabble.length);
+                ScoreService.calculateMaxScore(response.scrabble.length);
                 if (!countdownStarted) startCountdown();
             })
             .catch(error => console.error(error));
@@ -51,19 +55,23 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
         if (!words) return;
         setWords(words);
         if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
-            console.log(ScoreService.getScore());
+            ScoreService.calculateActualScore();
             getNextWord();
         }
     }
 
     function deleteFromResult(resultIndex, letter) {
         const words = BoardService.deleteFromResult(resultIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
-        ScoreService.decrementScore();
+        ScoreService.decrementMaxScore();
         if (words) setWords(words);
     }
 
     function setWords(words) {
         Object.assign($ctrl.words, words); 
+    }
+
+    function getCurrentResult() {
+        return $ctrl.words.result;
     }
 
     function setUserData(username, score) {

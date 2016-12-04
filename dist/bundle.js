@@ -32585,12 +32585,10 @@ var _board4 = _interopRequireDefault(_board3);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var board = {
+exports.default = {
     controller: _board4.default,
     template: _board2.default
 };
-
-exports.default = board;
 
 /***/ },
 /* 7 */
@@ -33295,6 +33293,10 @@ var _board = __webpack_require__(3);
 
 var _board2 = _interopRequireDefault(_board);
 
+var _highScore = __webpack_require__(27);
+
+var _highScore2 = _interopRequireDefault(_highScore);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 // Initialize Firebase
@@ -33311,7 +33313,7 @@ var app = {
     version: '0.0.1'
 };
 
-_angular2.default.module(app.name, ['ui.router', _user2.default.name, _board2.default.name]).config(function ($stateProvider, $urlRouterProvider, $locationProvider) {
+_angular2.default.module(app.name, ['ui.router', _user2.default.name, _board2.default.name, _highScore2.default.name]).config(function ($stateProvider, $urlRouterProvider, $locationProvider) {
     $stateProvider.state('scrabble', {
         url: '/',
         template: '<user></user>'
@@ -33322,13 +33324,20 @@ _angular2.default.module(app.name, ['ui.router', _user2.default.name, _board2.de
             username: '',
             score: 0
         }
-    });;
+    }).state('highScore', {
+        url: '/high-score',
+        template: '<high-score></high-score>',
+        params: {
+            username: '',
+            score: 0
+        }
+    });
 
     $urlRouterProvider.otherwise('/');
 }).run(function ($rootScope, $state, UserService) {
     $rootScope.$on('$stateChangeStart', function (ev, to, toParams, from, fromParams) {
 
-        if (!UserService.username && to.name !== 'scrabble') {
+        if (to.name === 'game' && !UserService.username) {
             ev.preventDefault();
             $state.go('scrabble');
         }
@@ -33379,6 +33388,8 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
             scrambled = _WordsService$getOrig.scrambled,
             result = _WordsService$getOrig.result;
 
+        var emptyLetterCount = (getCurrentResult().match(/-/g) || []).length;
+        ScoreService.decrementMaxScore(result.length - emptyLetterCount);
         setWords({ scrambled: scrambled, result: result });
         WordsService.flushWordsMapping();
     }
@@ -33395,7 +33406,11 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
     }
 
     function stopGame() {
-        console.log(ScoreService.getScore());
+        ScoreService.storeScore($state.params.username).then(function () {
+            return $state.go('highScore', { username: $state.params.username, score: ScoreService.getScore() });
+        }).catch(function (error) {
+            return console.error(error);
+        });
     }
 
     function getNextWord() {
@@ -33404,7 +33419,7 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
                 scrambled: response.scrabble,
                 result: WordsService.getOriginalWords().result
             });
-            ScoreService.initScore(response.scrabble.length);
+            ScoreService.calculateMaxScore(response.scrabble.length);
             if (!countdownStarted) startCountdown();
         }).catch(function (error) {
             return console.error(error);
@@ -33416,19 +33431,23 @@ function BoardController($state, $interval, WordsService, BoardService, ScoreSer
         if (!words) return;
         setWords(words);
         if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
-            console.log(ScoreService.getScore());
+            ScoreService.calculateActualScore();
             getNextWord();
         }
     }
 
     function deleteFromResult(resultIndex, letter) {
         var words = BoardService.deleteFromResult(resultIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
-        ScoreService.decrementScore();
+        ScoreService.decrementMaxScore();
         if (words) setWords(words);
     }
 
     function setWords(words) {
         Object.assign($ctrl.words, words);
+    }
+
+    function getCurrentResult() {
+        return $ctrl.words.result;
     }
 
     function setUserData(username, score) {
@@ -38291,12 +38310,10 @@ var _user4 = _interopRequireDefault(_user3);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var user = {
+exports.default = {
     controller: _user4.default,
     template: _user2.default
 };
-
-exports.default = user;
 
 /***/ },
 /* 24 */
@@ -38381,31 +38398,207 @@ var _constants = __webpack_require__(17);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-function ScoreService() {
+function ScoreService($q) {
 
-    var score = void 0;
+    var score = 0;
+    var maxScore = void 0;
 
-    function initScore(n) {
-        score = Math.floor(Math.pow(1.95, n / 3));
+    function calculateMaxScore(n) {
+        maxScore = Math.floor(Math.pow(1.95, n / 3));
     }
 
-    function decrementScore() {
-        if (score === 0) return;
-        score -= 1;
+    function decrementMaxScore() {
+        var decrementValue = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : 1;
+
+        if (maxScore === 0) return;
+        maxScore -= decrementValue;
+    }
+
+    function calculateActualScore() {
+        score = getScore() + maxScore;
     }
 
     function getScore() {
         return score;
     }
 
+    function storeScore(username) {
+        var defer = $q.defer();
+        var score = getScore();
+
+        var highScore = {
+            username: username,
+            score: score
+        };
+
+        _firebase2.default.database().ref('highScore/' + username).once('value').then(function (response) {
+            var currentScore = response.val().score;
+            if (score > currentScore) {
+                setNewScore();
+            } else {
+                defer.resolve({ username: username, currentScore: currentScore });
+            }
+        }).catch(function (error) {
+            return defer.reject(error);
+        });
+
+        function setNewScore() {
+            _firebase2.default.database().ref('highScore/' + username).set(highScore).then(function () {
+                return defer.resolve(highScore);
+            }).catch(function (error) {
+                return defer.reject(error);
+            });
+        }
+
+        return defer.promise;
+    }
+
+    function getScores() {
+        var defer = $q.defer();
+
+        _firebase2.default.database().ref('highScore/').once('value').then(function (response) {
+            return defer.resolve(response.val());
+        }).catch(function (error) {
+            return defer.reject(error);
+        });
+
+        return defer.promise;
+    }
+
     Object.assign(this, {
-        initScore: initScore,
-        decrementScore: decrementScore,
-        getScore: getScore
+        calculateMaxScore: calculateMaxScore,
+        decrementMaxScore: decrementMaxScore,
+        calculateActualScore: calculateActualScore,
+        getScore: getScore,
+        storeScore: storeScore,
+        getScores: getScores
     });
 }
 
+ScoreService.$inject = ['$q'];
 exports.default = ScoreService;
+
+/***/ },
+/* 27 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _angular = __webpack_require__(1);
+
+var _angular2 = _interopRequireDefault(_angular);
+
+var _highScore = __webpack_require__(28);
+
+var _highScore2 = _interopRequireDefault(_highScore);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var name = 'highScore';
+
+_angular2.default.module(name, []).component('highScore', _highScore2.default);
+
+exports.default = {
+    name: name
+};
+
+/***/ },
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _angular = __webpack_require__(1);
+
+var _angular2 = _interopRequireDefault(_angular);
+
+var _highScore = __webpack_require__(30);
+
+var _highScore2 = _interopRequireDefault(_highScore);
+
+var _highScore3 = __webpack_require__(29);
+
+var _highScore4 = _interopRequireDefault(_highScore3);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+exports.default = {
+    controller: _highScore4.default,
+    template: _highScore2.default
+};
+
+/***/ },
+/* 29 */
+/***/ function(module, exports) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+function HighScoreController(ScoreService) {
+
+    var highScores = [];
+
+    this.$onInit = function () {
+        ScoreService.getScores().then(function (scores) {
+            return setTable(scores);
+        }).catch(function (error) {
+            return console.error(error);
+        });
+    };
+
+    function setTable(scores) {
+        var _iteratorNormalCompletion = true;
+        var _didIteratorError = false;
+        var _iteratorError = undefined;
+
+        try {
+            for (var _iterator = Object.values(scores)[Symbol.iterator](), _step; !(_iteratorNormalCompletion = (_step = _iterator.next()).done); _iteratorNormalCompletion = true) {
+                var entry = _step.value;
+
+                highScores.push(entry);
+            }
+        } catch (err) {
+            _didIteratorError = true;
+            _iteratorError = err;
+        } finally {
+            try {
+                if (!_iteratorNormalCompletion && _iterator.return) {
+                    _iterator.return();
+                }
+            } finally {
+                if (_didIteratorError) {
+                    throw _iteratorError;
+                }
+            }
+        }
+    }
+
+    Object.assign(this, {
+        highScores: highScores
+    });
+}
+
+HighScoreController.$inject = ['ScoreService'];
+exports.default = HighScoreController;
+
+/***/ },
+/* 30 */
+/***/ function(module, exports) {
+
+module.exports = "<h1>High Score</h1>\n<table class=\"table\">\n    <thead>\n        <tr>\n            <th>Username</th>\n            <th>Score</th>\n        </tr>\n    </thead>\n    <tbody>\n        <tr data-ng-repeat=\"highScore in $ctrl.highScores\">\n            <td>{{highScore.username}}</td>\n            <td>{{highScore.score}}</td>\n        </tr>\n    </tbody>\n</table>\n";
 
 /***/ }
 /******/ ]);

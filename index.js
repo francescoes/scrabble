@@ -3,6 +3,7 @@ import angular from 'angular';
 import uiRouter from 'angular-ui-router';
 import user from './src/js/user';
 import board from './src/js/board';
+import highScore from './src/js/high-score';
 
 // Initialize Firebase
 firebase.initializeApp({
@@ -21,7 +22,8 @@ const app = {
 angular.module(app.name, [
         'ui.router',
         user.name,
-        board.name
+        board.name,
+        highScore.name
     ]).config(function ($stateProvider, $urlRouterProvider, $locationProvider) {
         $stateProvider.state('scrabble', {
             url: '/',
@@ -33,14 +35,21 @@ angular.module(app.name, [
                 username: '',
                 score: 0
             }
-        });;
+        }).state('highScore', {
+            url: '/high-score',
+            template: '<high-score></high-score>',
+            params: {
+                username: '',
+                score: 0
+            }
+        });
 
         $urlRouterProvider.otherwise('/');
     })
     .run(function ($rootScope, $state, UserService) {
         $rootScope.$on('$stateChangeStart', function (ev, to, toParams, from, fromParams) {
 
-            if (!UserService.username && to.name !== 'scrabble') {
+            if (to.name === 'game' && !UserService.username) {
                 ev.preventDefault();
                 $state.go('scrabble');
             }

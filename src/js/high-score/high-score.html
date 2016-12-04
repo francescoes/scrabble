@@ -1,0 +1,15 @@
+<h1>High Score</h1>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Username</th>
+            <th>Score</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr data-ng-repeat="highScore in $ctrl.highScores">
+            <td>{{highScore.username}}</td>
+            <td>{{highScore.score}}</td>
+        </tr>
+    </tbody>
+</table>
