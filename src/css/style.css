@@ -1,9 +1,14 @@
 .flex {
-	display: flex;
+    display: flex;
 }
 
 .justify-content-center {
-	justify-content: center;
+    justify-content: center;
+}
+
+.view {
+    margin: 20vh 0;
+    text-align: center;
 }
 
 .wrap {
