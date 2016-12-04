@@ -68,7 +68,7 @@ function WordsService($q) {
         deleteFromWordMapping,
         flushWordsMapping,
         getOriginalWords
-    })
+    });
 }
 
 WordsService.$inject = ['$q'];

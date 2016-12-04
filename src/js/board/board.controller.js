@@ -1,6 +1,6 @@
 import {EMPTY_LETTER} from '../constants';
 
-function BoardController($state, $interval, WordsService, BoardService) {
+function BoardController($state, $interval, WordsService, BoardService, ScoreService) {
 
     const $ctrl = this;
     $ctrl.words = {};
@@ -22,8 +22,15 @@ function BoardController($state, $interval, WordsService, BoardService) {
         countdownStarted = true;
         const stopInterval = $interval(() => {
             $ctrl.secondsLeft -= 1;
-            if ($ctrl.secondsLeft === 0) $interval.cancel(stopInterval);
+            if ($ctrl.secondsLeft === 0) {
+                stopGame();
+                $interval.cancel(stopInterval);
+            }
         }, 1000);
+    }
+
+    function stopGame() {
+        console.log(ScoreService.getScore());
     }
 
     function getNextWord() {
@@ -33,6 +40,7 @@ function BoardController($state, $interval, WordsService, BoardService) {
                     scrambled: response.scrabble,
                     result: WordsService.getOriginalWords().result
                 });
+                ScoreService.initScore(response.scrabble.length);
                 if (!countdownStarted) startCountdown();
             })
             .catch(error => console.error(error));
@@ -43,12 +51,14 @@ function BoardController($state, $interval, WordsService, BoardService) {
         if (!words) return;
         setWords(words);
         if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
+            console.log(ScoreService.getScore());
             getNextWord();
         }
     }
 
     function deleteFromResult(resultIndex, letter) {
         const words = BoardService.deleteFromResult(resultIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
+        ScoreService.decrementScore();
         if (words) setWords(words);
     }
 
@@ -57,7 +67,6 @@ function BoardController($state, $interval, WordsService, BoardService) {
     }
 
     function setUserData(username, score) {
-        console.log(username, score);
         $ctrl.username = username;
         $ctrl.score = score;
     }
@@ -70,5 +79,5 @@ function BoardController($state, $interval, WordsService, BoardService) {
     });
 }
 
-BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService'];
+BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService', 'ScoreService'];
 export default BoardController;

@@ -152,6 +152,10 @@ var _board3 = __webpack_require__(7);
 
 var _board4 = _interopRequireDefault(_board3);
 
+var _score = __webpack_require__(26);
+
+var _score2 = _interopRequireDefault(_score);
+
 var _words = __webpack_require__(19);
 
 var _words2 = _interopRequireDefault(_words);
@@ -160,7 +164,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var name = 'board';
 
-_angular2.default.module(name, []).component('board', _board2.default).service('BoardService', _board4.default).service('WordsService', _words2.default);
+_angular2.default.module(name, []).component('board', _board2.default).service('BoardService', _board4.default).service('ScoreService', _score2.default).service('WordsService', _words2.default);
 
 exports.default = {
     name: name
@@ -33358,7 +33362,7 @@ Object.defineProperty(exports, "__esModule", {
 
 var _constants = __webpack_require__(17);
 
-function BoardController($state, $interval, WordsService, BoardService) {
+function BoardController($state, $interval, WordsService, BoardService, ScoreService) {
 
     var $ctrl = this;
     $ctrl.words = {};
@@ -33383,8 +33387,15 @@ function BoardController($state, $interval, WordsService, BoardService) {
         countdownStarted = true;
         var stopInterval = $interval(function () {
             $ctrl.secondsLeft -= 1;
-            if ($ctrl.secondsLeft === 0) $interval.cancel(stopInterval);
+            if ($ctrl.secondsLeft === 0) {
+                stopGame();
+                $interval.cancel(stopInterval);
+            }
         }, 1000);
+    }
+
+    function stopGame() {
+        console.log(ScoreService.getScore());
     }
 
     function getNextWord() {
@@ -33393,6 +33404,7 @@ function BoardController($state, $interval, WordsService, BoardService) {
                 scrambled: response.scrabble,
                 result: WordsService.getOriginalWords().result
             });
+            ScoreService.initScore(response.scrabble.length);
             if (!countdownStarted) startCountdown();
         }).catch(function (error) {
             return console.error(error);
@@ -33404,12 +33416,14 @@ function BoardController($state, $interval, WordsService, BoardService) {
         if (!words) return;
         setWords(words);
         if (BoardService.isResultBoardFull(words.result) && BoardService.checkSolution(words.result)) {
+            console.log(ScoreService.getScore());
             getNextWord();
         }
     }
 
     function deleteFromResult(resultIndex, letter) {
         var words = BoardService.deleteFromResult(resultIndex, letter, $ctrl.words.scrambled, $ctrl.words.result);
+        ScoreService.decrementScore();
         if (words) setWords(words);
     }
 
@@ -33418,7 +33432,6 @@ function BoardController($state, $interval, WordsService, BoardService) {
     }
 
     function setUserData(username, score) {
-        console.log(username, score);
         $ctrl.username = username;
         $ctrl.score = score;
     }
@@ -33431,7 +33444,7 @@ function BoardController($state, $interval, WordsService, BoardService) {
     });
 }
 
-BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService'];
+BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService', 'ScoreService'];
 exports.default = BoardController;
 
 /***/ },
@@ -38348,6 +38361,51 @@ function UserService($q) {
 
 UserService.$inject = ['$q'];
 exports.default = UserService;
+
+/***/ },
+/* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+"use strict";
+'use strict';
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _firebase = __webpack_require__(2);
+
+var _firebase2 = _interopRequireDefault(_firebase);
+
+var _constants = __webpack_require__(17);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function ScoreService() {
+
+    var score = void 0;
+
+    function initScore(n) {
+        score = Math.floor(Math.pow(1.95, n / 3));
+    }
+
+    function decrementScore() {
+        if (score === 0) return;
+        score -= 1;
+    }
+
+    function getScore() {
+        return score;
+    }
+
+    Object.assign(this, {
+        initScore: initScore,
+        decrementScore: decrementScore,
+        getScore: getScore
+    });
+}
+
+exports.default = ScoreService;
 
 /***/ }
 /******/ ]);
