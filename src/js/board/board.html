@@ -1,5 +1,7 @@
 <div class="board no-display text-center">
 	<h2 class="countdown text-center">{{$ctrl.secondsLeft}}</h2>
+	<h2 class="text-center">{{$ctrl.username}}</h2>
+	<h2 class="text-center">{{$ctrl.score}}</h2>
 	<button class="btn btn-default" data-ng-click="$ctrl.resetBoard()">RESET</button>
 	<div class="flex wrap justify-content-center">
 		<h1 data-ng-repeat="letter in $ctrl.words.scrambled track by $index"

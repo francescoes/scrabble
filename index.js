@@ -1,6 +1,7 @@
 import firebase from 'firebase';
 import angular from 'angular';
-import users from './src/js/users';
+import uiRouter from 'angular-ui-router';
+import user from './src/js/user';
 import board from './src/js/board';
 
 // Initialize Firebase
@@ -12,14 +13,38 @@ firebase.initializeApp({
     messagingSenderId: "194228686950"
 });
 
-
 const app = {
     name: 'scrabble',
     version: '0.0.1'
 }
 
 angular.module(app.name, [
-    users.name,
-    board.name
-]);
+        'ui.router',
+        user.name,
+        board.name
+    ]).config(function ($stateProvider, $urlRouterProvider, $locationProvider) {
+        $stateProvider.state('scrabble', {
+            url: '/',
+            template: '<user></user>'
+        }).state('game', {
+            url: '/board',
+            template: '<board></board>',
+            params: {
+                username: '',
+                score: 0
+            }
+        });;
+
+        $urlRouterProvider.otherwise('/');
+    })
+    .run(function ($rootScope, $state, UserService) {
+        $rootScope.$on('$stateChangeStart', function (ev, to, toParams, from, fromParams) {
+
+            if (!UserService.username && to.name !== 'scrabble') {
+                ev.preventDefault();
+                $state.go('scrabble');
+            }
+        });
+    });
+
 angular.bootstrap(document, [app.name]);

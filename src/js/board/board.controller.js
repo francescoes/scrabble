@@ -1,19 +1,16 @@
 import {EMPTY_LETTER} from '../constants';
 
-function BoardController($element, $interval, WordsService, BoardService) {
+function BoardController($state, $interval, WordsService, BoardService) {
 
     const $ctrl = this;
     $ctrl.words = {};
+    $ctrl.user = {};
     let countdownStarted = false;
 
-    function $onChanges(changes) {
-        if (!changes.enabled.currentValue) return;
+    $ctrl.$onInit = () => {
+        setUserData($state.params.username, $state.params.score);
         getNextWord();
-    }
-
-    function showBoard() {
-        angular.element($element[0].firstChild).removeClass('no-display');
-    }
+    };
 
     function resetBoard() {
         const {scrambled, result} = WordsService.getOriginalWords();
@@ -32,12 +29,10 @@ function BoardController($element, $interval, WordsService, BoardService) {
     function getNextWord() {
         WordsService.getWord()
             .then(response => {
-                WordsService.initWordsMapping(response.scrabble, response.word);
                 setWords({
                     scrambled: response.scrabble,
                     result: WordsService.getOriginalWords().result
                 });
-                showBoard();
                 if (!countdownStarted) startCountdown();
             })
             .catch(error => console.error(error));
@@ -61,14 +56,19 @@ function BoardController($element, $interval, WordsService, BoardService) {
         Object.assign($ctrl.words, words); 
     }
 
+    function setUserData(username, score) {
+        console.log(username, score);
+        $ctrl.username = username;
+        $ctrl.score = score;
+    }
+
     Object.assign($ctrl, {
         secondsLeft: 40,
         addToResult,
-        $onChanges,
         deleteFromResult,
         resetBoard,
     });
 }
 
-BoardController.$inject = ['$element', '$interval', 'WordsService', 'BoardService'];
+BoardController.$inject = ['$state', '$interval', 'WordsService', 'BoardService'];
 export default BoardController;

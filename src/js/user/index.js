@@ -1,11 +1,12 @@
 import angular from 'angular';
-import UserService from './user.service';
+import user from './user.component';
 import UserController from './user.controller';
+import UserService from './user.service';
 
-const name = 'users';
+const name = 'user';
 
 angular.module(name, [])
-    .controller('UserController', UserController)
+    .component('user', user)
     .service('UserService', UserService);
 
 export default {

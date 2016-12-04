@@ -2,12 +2,9 @@ import angular from 'angular';
 import boardTemplate from './board.html';
 import BoardController from './board.controller';
 
-const boardComponent = {
+const board = {
     controller: BoardController,
-    template: boardTemplate,
-    bindings: {
-        enabled: '<'
-    }
+    template: boardTemplate
 };
 
-export default boardComponent;
+export default board;

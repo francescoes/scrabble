@@ -51,7 +51,11 @@ function WordsService($q) {
         const index = Math.floor(Math.random() * 1000) + 1;
 
         firebase.database().ref('words/' + index).once('value')
-            .then(word => defer.resolve(word.val()))
+            .then(response => {
+                const word = response.val();
+                initWordsMapping(word.scrabble, word.word);
+                defer.resolve(word);
+            })
             .catch(error => defer.reject(error))
 
         return defer.promise;
@@ -60,7 +64,6 @@ function WordsService($q) {
     Object.assign(this, {
         getWord,
         replaceAt,
-        initWordsMapping,
         addToWordMapping, 
         deleteFromWordMapping,
         flushWordsMapping,

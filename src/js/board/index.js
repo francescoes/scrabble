@@ -1,12 +1,12 @@
 import angular from 'angular';
-import boardComponent from './board.component';
+import board from './board.component';
 import BoardService from './board.service';
 import WordsService from './words.service';
 
 const name = 'board';
 
 angular.module(name, [])
-    .component('boardComponent', boardComponent)
+    .component('board', board)
     .service('BoardService', BoardService)
     .service('WordsService', WordsService);
 
